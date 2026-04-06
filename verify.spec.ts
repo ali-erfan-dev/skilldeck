@@ -266,6 +266,66 @@ test('F006 - Edit skill content saves to disk', async () => {
   await app.close()
 })
 
+// ─── F007: Edit skill — frontmatter fields editable ───────────────────────────
+
+test('F007 - Edit frontmatter fields (name, description, tags)', async () => {
+  cleanSkilldeck()
+  seedSkill('frontmatter-test', makeSkillContent('Original Name', 'Original description', ['original-tag']))
+
+  const { app, window } = await launchApp()
+
+  // Click the skill to open editor
+  await window.click('[data-testid="skill-item"], [data-skill]')
+
+  // Wait for editor to be visible
+  await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+
+  // Edit name field
+  const nameInput = window.locator('[data-testid="skill-editor"] input[type="text"]').first()
+  await nameInput.fill('Updated Name')
+
+  // Edit description field (second text input in metadata section)
+  const descInput = window.locator('[data-testid="skill-editor"] input[type="text"]').nth(1)
+  await descInput.fill('Updated description')
+
+  // Add a new tag
+  const tagInput = window.locator('[data-testid="skill-editor"] input[placeholder*="Add tag"], input[placeholder*="tag"]').last()
+  await tagInput.fill('new-tag')
+  await tagInput.press('Enter')
+
+  // Save
+  const saveBtn = window.locator('[data-testid="save-btn"]')
+  await saveBtn.click()
+
+  // Wait for save to complete
+  await window.waitForTimeout(500)
+
+  // Verify file on disk has updated frontmatter
+  const content = fs.readFileSync(path.join(LIBRARY_DIR, 'frontmatter-test.md'), 'utf8')
+  expect(content).toContain('name: "Updated Name"')
+  expect(content).toContain('description: "Updated description"')
+  expect(content).toContain('new-tag')
+
+  // Close app and reopen to verify persistence
+  await app.close()
+
+  const { app: app2, window: window2 } = await launchApp()
+  await window2.click('[data-testid="skill-item"], [data-skill]')
+  await window2.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+
+  // Verify the fields show the updated values
+  const nameInput2 = window2.locator('[data-testid="skill-editor"] input[type="text"]').first()
+  const descInput2 = window2.locator('[data-testid="skill-editor"] input[type="text"]').nth(1)
+
+  await expect(nameInput2).toHaveValue('Updated Name')
+  await expect(descInput2).toHaveValue('Updated description')
+
+  // Verify tag is visible in editor
+  await expect(window2.locator('[data-testid="skill-editor"]').locator('text=new-tag')).toBeVisible()
+
+  await app2.close()
+})
+
 // ─── F008: Delete skill ───────────────────────────────────────────────────────
 
 test('F008 - Delete skill with confirmation', async () => {
