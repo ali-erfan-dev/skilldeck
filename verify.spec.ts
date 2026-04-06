@@ -485,6 +485,76 @@ test('F011 - Register a project', async () => {
   await app.close()
 })
 
+// ─── F012: Remove a project ──────────────────────────────────────────────────
+
+test('F012 - Remove a project', async () => {
+  cleanSkilldeck()
+
+  // Create a temp directory to register as a project
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skilldeck-test-project-'))
+
+  // Ensure skilldeck directory exists
+  fs.mkdirSync(SKILLDECK_DIR, { recursive: true })
+
+  // Pre-seed a project in config
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{
+      id: 'test-project-1',
+      name: 'Test Project',
+      path: projectDir,
+      skillsPath: '.claude/skills'
+    }]
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+
+  // Add a deployment record
+  const deployments = {
+    'test-project-1': {
+      'some-skill': { deployedAt: new Date().toISOString(), libraryHash: 'abc123', currentHash: 'abc123' }
+    }
+  }
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify(deployments, null, 2))
+
+  const { app, window } = await launchApp()
+
+  // Navigate to Projects
+  await window.click('[data-testid="nav-projects"]')
+  await window.waitForSelector('[data-testid="projects-view"]', { timeout: 5000 })
+
+  // Wait for project to appear
+  await window.waitForTimeout(1000)
+
+  // Verify project is visible
+  await expect(window.locator('text=Test Project')).toBeVisible({ timeout: 5000 })
+
+  // Click Remove button (use text selector since testid includes dynamic ID)
+  await window.click('button:has-text("Remove")')
+  await window.waitForTimeout(500)
+
+  // Confirmation dialog appears
+  await expect(window.locator('text=Remove Project?')).toBeVisible({ timeout: 3000 })
+
+  // Click Remove in dialog (use text selector for reliability)
+  await window.click('button:has-text("Remove") >> nth=1')
+
+  // Project no longer appears in list
+  await window.waitForTimeout(300)
+  await expect(window.locator('text=Test Project')).not.toBeVisible()
+
+  // Config no longer contains the project
+  const updatedConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  expect(updatedConfig.projects.length).toBe(0)
+
+  // Deployments still contains the record
+  const updatedDeployments = JSON.parse(fs.readFileSync(DEPLOYMENTS_PATH, 'utf8'))
+  expect(updatedDeployments['test-project-1']).toBeTruthy()
+
+  // Cleanup
+  fs.rmSync(projectDir, { recursive: true, force: true })
+  await app.close()
+})
+
 // ─── F014: Deploy a skill to a project ───────────────────────────────────────
 
 test('F014 - Deploy skill to project', async () => {

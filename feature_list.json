@@ -198,8 +198,8 @@
         "Verify config.json no longer contains the project",
         "Verify deployments.json still contains any prior deployment records for that project"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F013",

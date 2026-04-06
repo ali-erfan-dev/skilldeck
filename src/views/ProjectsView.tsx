@@ -62,6 +62,7 @@ export default function ProjectsView() {
                   <div className="text-xs text-muted font-mono mt-1">{project.path}</div>
                 </div>
                 <button
+                  data-testid={`remove-project-btn-${project.id}`}
                   onClick={() => setConfirmDelete(project.id)}
                   className="text-muted hover:text-red-400 text-sm"
                 >
@@ -149,6 +150,7 @@ export default function ProjectsView() {
                 Cancel
               </button>
               <button
+                data-testid="confirm-remove-project"
                 onClick={() => handleRemoveProject(confirmDelete)}
                 className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
               >
