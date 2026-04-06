@@ -277,8 +277,8 @@
         "Verify the deployment record is removed from deployments.json",
         "Verify the skill no longer appears in the project's deployed skills list"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F018",

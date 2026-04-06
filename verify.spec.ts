@@ -807,3 +807,74 @@ test('F016 - View all deployed skills per project', async () => {
   fs.rmSync(projectDir, { recursive: true, force: true })
   await app.close()
 })
+
+// ─── F017: Undeploy a skill from a project ─────────────────────────────────────
+
+test('F017 - Undeploy a skill from a project', async () => {
+  cleanSkilldeck()
+
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skilldeck-test-project-'))
+  seedSkill('test-skill', makeSkillContent('Test Skill', 'A test skill'))
+
+  // Get hash for deployment
+  const content = fs.readFileSync(path.join(LIBRARY_DIR, 'test-skill.md'), 'utf8')
+  const hash = crypto.createHash('md5').update(content).digest('hex')
+
+  // Create deployed file
+  const deployedDir = path.join(projectDir, '.claude', 'skills')
+  fs.mkdirSync(deployedDir, { recursive: true })
+  fs.writeFileSync(path.join(deployedDir, 'test-skill.md'), content)
+
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{ id: 'proj-1', name: 'Test Project', path: projectDir, skillsPath: '.claude/skills' }]
+  }
+  const deployments = {
+    'proj-1': {
+      'test-skill': { deployedAt: new Date().toISOString(), libraryHash: hash, currentHash: hash }
+    }
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify(deployments, null, 2))
+
+  const { app, window } = await launchApp()
+
+  // Navigate to Projects
+  await window.click('[data-testid="nav-projects"]')
+  await window.waitForSelector('[data-testid="projects-view"]', { timeout: 5000 })
+  await window.waitForTimeout(500)
+
+  // Expand the project to see deployed skills
+  await window.click('text=Test Project')
+  await window.waitForTimeout(500)
+
+  // Verify deployed skill appears
+  await window.waitForSelector('[data-testid="deployed-skill-item-test-skill"]', { timeout: 3000 })
+
+  // Click undeploy button
+  await window.click('[data-testid="undeploy-btn-test-skill"]')
+  await window.waitForTimeout(300)
+
+  // Confirmation dialog appears
+  await expect(window.locator('text=Undeploy Skill?')).toBeVisible({ timeout: 2000 })
+
+  // Confirm undeploy
+  await window.click('[data-testid="confirm-undeploy"]')
+  await window.waitForTimeout(500)
+
+  // Verify skill no longer appears in deployed list
+  await window.waitForTimeout(500)
+  const skillItems = await window.locator('[data-testid^="deployed-skill-item-"]').count()
+  expect(skillItems).toBe(0)
+
+  // Verify file deleted from project skills path
+  const deployedPath = path.join(projectDir, '.claude', 'skills', 'test-skill.md')
+  expect(fs.existsSync(deployedPath)).toBe(false)
+
+  // Verify deployment record removed from deployments.json
+  const updatedDeployments = JSON.parse(fs.readFileSync(DEPLOYMENTS_PATH, 'utf8'))
+  expect(updatedDeployments['proj-1']?.['test-skill']).toBeUndefined()
+
+  fs.rmSync(projectDir, { recursive: true, force: true })
+  await app.close()
+})

@@ -22,6 +22,8 @@ export default function ProjectsView() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [deployedSkillsInfo, setDeployedSkillsInfo] = useState<Record<string, DeployedSkillInfo[]>>({})
   const [redeploying, setRedeploying] = useState<string | null>(null)
+  const [confirmUndeploy, setConfirmUndeploy] = useState<{ projectId: string; skillName: string } | null>(null)
+  const [undeploying, setUndeploying] = useState<string | null>(null)
 
   useEffect(() => {
     loadDeployments()
@@ -85,6 +87,36 @@ export default function ProjectsView() {
       console.error('Redeploy failed:', err)
     } finally {
       setRedeploying(null)
+    }
+  }
+
+  const handleUndeploy = async (projectId: string, skillName: string) => {
+    const project = config?.projects.find(p => p.id === projectId)
+    if (!project) return
+
+    setUndeploying(skillName)
+    try {
+      // Delete the deployed skill file
+      const targetPath = `${project.path}/${project.skillsPath}/${skillName}.md`
+      await window.api.deleteFile(targetPath)
+
+      // Remove from deployments.json
+      const updatedDeployments = await window.api.getDeployments()
+      if (updatedDeployments[projectId]) {
+        delete updatedDeployments[projectId][skillName]
+        // Clean up empty project entries
+        if (Object.keys(updatedDeployments[projectId]).length === 0) {
+          delete updatedDeployments[projectId]
+        }
+      }
+      await window.api.setDeployments(updatedDeployments)
+      await loadDeployments()
+
+      setConfirmUndeploy(null)
+    } catch (err) {
+      console.error('Undeploy failed:', err)
+    } finally {
+      setUndeploying(null)
     }
   }
 
@@ -230,6 +262,14 @@ export default function ProjectsView() {
                               >
                                 {redeploying === skill.skillName ? 'Redeploying...' : 'Redeploy'}
                               </button>
+                              <button
+                                data-testid={`undeploy-btn-${skill.skillName}`}
+                                onClick={() => setConfirmUndeploy({ projectId: project.id, skillName: skill.skillName })}
+                                disabled={undeploying === skill.skillName}
+                                className="px-2 py-1 text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+                              >
+                                Undeploy
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -367,6 +407,34 @@ export default function ProjectsView() {
                 className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim text-bg rounded font-medium"
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Undeploy Confirmation Modal */}
+      {confirmUndeploy && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-border rounded-lg p-4 w-80">
+            <h3 className="font-medium text-fg mb-2">Undeploy Skill?</h3>
+            <p className="text-sm text-muted mb-4">
+              This will remove <span className="font-medium text-fg">{confirmUndeploy.skillName}</span> from the project. The skill will still exist in your library.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmUndeploy(null)}
+                className="px-3 py-1.5 text-sm text-muted hover:text-fg"
+              >
+                Cancel
+              </button>
+              <button
+                data-testid="confirm-undeploy"
+                onClick={() => handleUndeploy(confirmUndeploy.projectId, confirmUndeploy.skillName)}
+                disabled={undeploying === confirmUndeploy.skillName}
+                className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded"
+              >
+                {undeploying === confirmUndeploy.skillName ? 'Undeploying...' : 'Undeploy'}
               </button>
             </div>
           </div>
