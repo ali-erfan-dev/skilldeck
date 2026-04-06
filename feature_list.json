@@ -262,8 +262,8 @@
         "Click re-deploy on the stale skill",
         "Verify it returns to Current"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F017",

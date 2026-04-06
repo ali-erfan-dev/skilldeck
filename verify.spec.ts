@@ -714,3 +714,96 @@ test('F015 - Deployment state current vs stale', async () => {
   fs.rmSync(projectDir, { recursive: true, force: true })
   await app.close()
 })
+
+// ─── F016: View all deployed skills per project ─────────────────────────────────
+
+test('F016 - View all deployed skills per project', async () => {
+  cleanSkilldeck()
+
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skilldeck-test-project-'))
+
+  // Create skills
+  seedSkill('skill-one', makeSkillContent('Skill One', 'First skill', ['tag1']))
+  seedSkill('skill-two', makeSkillContent('Skill Two', 'Second skill', ['tag2']))
+  seedSkill('skill-three', makeSkillContent('Skill Three', 'Third skill', ['tag3']))
+
+  // Get hashes for deployment records
+  const content1 = fs.readFileSync(path.join(LIBRARY_DIR, 'skill-one.md'), 'utf8')
+  const content2 = fs.readFileSync(path.join(LIBRARY_DIR, 'skill-two.md'), 'utf8')
+  const content3 = fs.readFileSync(path.join(LIBRARY_DIR, 'skill-three.md'), 'utf8')
+  const hash1 = crypto.createHash('md5').update(content1).digest('hex')
+  const hash2 = crypto.createHash('md5').update(content2).digest('hex')
+  const hash3 = crypto.createHash('md5').update(content3).digest('hex')
+
+  // Create deployed files
+  const deployedDir = path.join(projectDir, '.claude', 'skills')
+  fs.mkdirSync(deployedDir, { recursive: true })
+  fs.writeFileSync(path.join(deployedDir, 'skill-one.md'), content1)
+  fs.writeFileSync(path.join(deployedDir, 'skill-two.md'), content2)
+  fs.writeFileSync(path.join(deployedDir, 'skill-three.md'), content3)
+
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{ id: 'proj-1', name: 'Test Project', path: projectDir, skillsPath: '.claude/skills' }]
+  }
+  const deployments = {
+    'proj-1': {
+      'skill-one': { deployedAt: new Date().toISOString(), libraryHash: hash1, currentHash: hash1 },
+      'skill-two': { deployedAt: new Date(Date.now() - 86400000).toISOString(), libraryHash: hash2, currentHash: hash2 },
+      'skill-three': { deployedAt: new Date(Date.now() - 172800000).toISOString(), libraryHash: hash3, currentHash: hash3 }
+    }
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify(deployments, null, 2))
+
+  const { app, window } = await launchApp()
+
+  // Navigate to Projects
+  await window.click('[data-testid="nav-projects"]')
+  await window.waitForSelector('[data-testid="projects-view"]', { timeout: 5000 })
+
+  // Wait for project to appear
+  await window.waitForTimeout(500)
+
+  // Click on project to expand deployed skills
+  await window.click('text=Test Project')
+  await window.waitForTimeout(500)
+
+  // Wait for deployed skills section
+  await window.waitForSelector('[data-testid="deployed-skills-proj-1"]', { timeout: 3000 })
+
+  // Verify all 3 deployed skills appear (count only skill item containers)
+  const skillContainers = await window.locator('[data-testid^="deployed-skill-item-"]').count()
+  expect(skillContainers).toBe(3)
+
+  // Verify each skill shows status
+  await expect(window.locator('[data-testid="deployed-skill-item-skill-one"]')).toBeVisible()
+  await expect(window.locator('[data-testid="deployed-skill-item-skill-two"]')).toBeVisible()
+  await expect(window.locator('[data-testid="deployed-skill-item-skill-three"]')).toBeVisible()
+
+  // Verify status badges (all current since hashes match)
+  await expect(window.locator('[data-testid="deployed-skill-status-skill-one"]')).toContainText('Current')
+  await expect(window.locator('[data-testid="deployed-skill-status-skill-two"]')).toContainText('Current')
+
+  // Modify a library skill to make it stale
+  const newContent = content1 + '\n\n## New Section\nAdded content.'
+  fs.writeFileSync(path.join(LIBRARY_DIR, 'skill-one.md'), newContent)
+
+  // Refresh by navigating away and back
+  await window.click('[data-testid="nav-library"]')
+  await window.waitForTimeout(500)
+  await window.click('[data-testid="nav-projects"]')
+  await window.waitForTimeout(500)
+  await window.click('text=Test Project')
+  await window.waitForTimeout(500)
+
+  // Now skill-one should show as stale
+  await expect(window.locator('[data-testid="deployed-skill-status-skill-one"]')).toContainText('Stale')
+
+  // Test re-deploy button exists
+  const redeployBtn = window.locator('[data-testid="redeploy-btn-skill-one"]')
+  await expect(redeployBtn).toBeVisible()
+
+  fs.rmSync(projectDir, { recursive: true, force: true })
+  await app.close()
+})
