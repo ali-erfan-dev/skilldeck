@@ -312,8 +312,8 @@
         "Verify registered project skills show 'project:[name]' badge",
         "Verify no duplicates appear when the same skill name exists in multiple locations"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F020",
