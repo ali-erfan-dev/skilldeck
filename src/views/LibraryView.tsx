@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useSkillStore } from '../store/skillStore'
 import SkillEditor from '../components/SkillEditor'
 
@@ -7,10 +7,13 @@ export default function LibraryView() {
     skills,
     selectedSkill,
     searchQuery,
+    selectedTags,
     loading,
     loadSkills,
     selectSkill,
     setSearchQuery,
+    toggleTag,
+    clearTags,
     createSkill,
     deleteSkill,
   } = useSkillStore()
@@ -21,13 +24,30 @@ export default function LibraryView() {
     loadSkills()
   }, [loadSkills])
 
+  // Get all unique tags from skills
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>()
+    skills.forEach(skill => {
+      skill.tags.forEach(tag => tagSet.add(tag))
+    })
+    return Array.from(tagSet).sort()
+  }, [skills])
+
   const filteredSkills = skills.filter(skill => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return (
-      skill.name.toLowerCase().includes(q) ||
-      skill.description.toLowerCase().includes(q)
-    )
+    // Filter by search query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      const matchesSearch =
+        skill.name.toLowerCase().includes(q) ||
+        skill.description.toLowerCase().includes(q)
+      if (!matchesSearch) return false
+    }
+    // Filter by selected tags (OR logic - match any selected tag)
+    if (selectedTags.length > 0) {
+      const hasTag = selectedTags.some(tag => skill.tags.includes(tag))
+      if (!hasTag) return false
+    }
+    return true
   })
 
   const handleNewSkill = async () => {
@@ -62,6 +82,40 @@ export default function LibraryView() {
             className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none"
           />
         </div>
+
+        {/* Tag Filter */}
+        {allTags.length > 0 && (
+          <div className="p-3 border-b border-border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted">Filter by tag</span>
+              {selectedTags.length > 0 && (
+                <button
+                  data-testid="clear-tags-btn"
+                  onClick={clearTags}
+                  className="text-xs text-accent hover:text-accent-dim"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1" data-testid="tag-filters">
+              {allTags.map(tag => (
+                <button
+                  key={tag}
+                  data-testid={`tag-filter-${tag}`}
+                  onClick={() => toggleTag(tag)}
+                  className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                    selectedTags.includes(tag)
+                      ? 'bg-accent text-bg'
+                      : 'bg-border text-muted hover:text-fg'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* New Skill Button */}
         <div className="p-3 border-b border-border">

@@ -4,7 +4,7 @@
 Phase: 1 (Foundation)
 Started: 2026-04-05
 Last updated: 2026-04-06
-Features passing: 10 / 18
+Features passing: 11 / 18
 
 ## How to Use This File
 - Read this at the start of every session BEFORE touching any code
@@ -129,19 +129,18 @@ Features passing: 10 / 18
 
 ---
 
-### Session 2 — F007 frontmatter editing (2026-04-06)
-**What happened:** Verified F007 was already implemented in previous session. Test existed but had selector issue. Fixed test selector to scope to skill editor. Test passed.
+### Session 2 — F007 verified, F010 completed (2026-04-06)
+**What happened:** Verified F007 was already implemented in previous session. Fixed test selector. Then implemented F010 (tag filtering) - added selectedTags state to skillStore, tag filter UI to LibraryView. Both tests pass.
 
-**Features completed this session:** F007
+**Features completed this session:** F007 (verified), F010 (implemented)
 
-**Features passing now:** 10 / 18
+**Features passing now:** 11 / 18
 
-**Current app state:** App runs. Library features complete (list, create, edit frontmatter fields, delete, search). Projects view has basic functionality. Deployment features not started.
+**Current app state:** App runs. Library features complete (list, create, edit frontmatter fields, delete, search, tag filtering). Projects view has basic functionality. Deployment features not started.
 
 **Next session should:**
 1. Run ./init.sh
-2. Work on F010 (filter by tag) as next feature
-3. Then F012-F018 (projects/deployment features)
+2. Work on F012 (remove project) or F014-F018 (deployment features)
 
 **Blockers:** None.
 

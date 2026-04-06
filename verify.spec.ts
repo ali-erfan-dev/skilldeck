@@ -393,6 +393,53 @@ test('F009 - Search filters skill list', async () => {
   await app.close()
 })
 
+// ─── F010: Filter skills by tag ────────────────────────────────────────────────
+
+test('F010 - Filter skills by tag', async () => {
+  cleanSkilldeck()
+  seedSkill('skill-a', makeSkillContent('Skill A', 'First skill', ['thinking', 'scoping']))
+  seedSkill('skill-b', makeSkillContent('Skill B', 'Second skill', ['process', 'shipping']))
+  seedSkill('skill-c', makeSkillContent('Skill C', 'Third skill', ['thinking', 'focus']))
+
+  const { app, window } = await launchApp()
+
+  // Wait for skills to load
+  await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+
+  // Wait for tag filters to appear (they appear when skills have tags)
+  await window.waitForSelector('[data-testid="tag-filters"]', { timeout: 5000 })
+
+  // Verify all three skills are visible
+  let count = await window.locator('[data-testid="skill-item"]').count()
+  expect(count).toBe(3)
+
+  // Click on a tag to filter
+  await window.click('[data-testid="tag-filter-thinking"]')
+  await window.waitForTimeout(500)
+
+  // Should show only skills with 'thinking' tag (Skill A and Skill C)
+  count = await window.locator('[data-testid="skill-item"]').count()
+  expect(count).toBe(2)
+
+  // Click another tag (OR logic - shows skills matching either tag)
+  await window.click('[data-testid="tag-filter-process"]')
+  await window.waitForTimeout(500)
+
+  // Should show skills with 'thinking' OR 'process' (A, B, C)
+  count = await window.locator('[data-testid="skill-item"]').count()
+  expect(count).toBe(3)
+
+  // Clear filter
+  await window.click('[data-testid="clear-tags-btn"]')
+  await window.waitForTimeout(500)
+
+  // All skills visible again
+  count = await window.locator('[data-testid="skill-item"]').count()
+  expect(count).toBe(3)
+
+  await app.close()
+})
+
 // ─── F011: Register a project ─────────────────────────────────────────────────
 
 test('F011 - Register a project', async () => {

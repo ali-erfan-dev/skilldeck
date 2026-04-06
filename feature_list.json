@@ -164,8 +164,8 @@
         "Verify list shows skills matching either tag",
         "Click clear — verify all skills return"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F011",
