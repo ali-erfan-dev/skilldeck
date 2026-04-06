@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useConfigStore } from '../store/configStore'
+import { useSkillStore } from '../store/skillStore'
 import type { Skill } from '../types'
 
 interface SkillEditorProps {
@@ -46,6 +47,7 @@ function buildSkillContent(parsed: ParsedSkill): string {
 
 export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   const { config } = useConfigStore()
+  const { loadSkills, selectSkill } = useSkillStore()
   const [parsed, setParsed] = useState<ParsedSkill>(() => parseSkillContent(skill.content))
   const [saving, setSaving] = useState(false)
   const [showDeployModal, setShowDeployModal] = useState(false)
@@ -55,12 +57,17 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
 
   useEffect(() => {
     setParsed(parseSkillContent(skill.content))
+    setNewTag('') // Reset tag input when switching skills
   }, [skill])
 
   const handleSave = async () => {
     setSaving(true)
     const content = buildSkillContent(parsed)
     await window.api.writeSkill(skill.filename, content)
+    // Reload skills to update sidebar, then update selected skill
+    await loadSkills()
+    // Update the selected skill with new content so it persists when navigating away and back
+    selectSkill({ ...skill, content, tags: parsed.tags, name: parsed.name, description: parsed.description })
     setSaving(false)
   }
 
