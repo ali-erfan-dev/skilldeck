@@ -942,3 +942,58 @@ test('F018 - Settings view library path configurable', async () => {
   fs.rmSync(lib2, { recursive: true, force: true })
   await app.close()
 })
+
+// ─── Additional test: Tag persistence after save without restart ─────────────────
+
+test('Tag persists after save without app restart', async () => {
+  cleanSkilldeck()
+  seedSkill('tag-persist-test', makeSkillContent('Tag Persist Test', 'Testing tag persistence', ['existing-tag']))
+
+  const { app, window } = await launchApp()
+
+  // Click skill to open editor
+  await window.click('[data-testid="skill-item"], [data-skill]')
+  await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+
+  // Verify existing tag is visible in editor
+  const editor = window.locator('[data-testid="skill-editor"]')
+  await expect(editor.locator('text=existing-tag')).toBeVisible()
+
+  // Add a new tag
+  const tagInput = window.locator('[data-testid="tag-input"]')
+  await tagInput.fill('new-persistent-tag')
+  await tagInput.press('Enter')
+
+  // Verify new tag appears in the editor
+  await expect(editor.locator('text=new-persistent-tag')).toBeVisible()
+
+  // Save
+  await window.click('[data-testid="save-btn"]')
+  await window.waitForTimeout(500)
+
+  // Verify both tags are still visible after save
+  await expect(editor.locator('text=existing-tag')).toBeVisible()
+  await expect(editor.locator('text=new-persistent-tag')).toBeVisible()
+
+  // Navigate away and back
+  await window.click('[data-testid="nav-projects"]')
+  await window.waitForTimeout(300)
+  await window.click('[data-testid="nav-library"]')
+  await window.waitForTimeout(300)
+
+  // Click the skill again
+  await window.click('[data-testid="skill-item"], [data-skill]')
+  await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+
+  // Verify both tags are still there
+  const editor2 = window.locator('[data-testid="skill-editor"]')
+  await expect(editor2.locator('text=existing-tag')).toBeVisible()
+  await expect(editor2.locator('text=new-persistent-tag')).toBeVisible()
+
+  // Verify file on disk
+  const content = fs.readFileSync(path.join(LIBRARY_DIR, 'tag-persist-test.md'), 'utf8')
+  expect(content).toContain('existing-tag')
+  expect(content).toContain('new-persistent-tag')
+
+  await app.close()
+})

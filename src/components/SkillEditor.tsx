@@ -64,10 +64,8 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
     setSaving(true)
     const content = buildSkillContent(parsed)
     await window.api.writeSkill(skill.filename, content)
-    // Reload skills to update sidebar, then update selected skill
+    // Reload skills to update sidebar
     await loadSkills()
-    // Update the selected skill with new content so it persists when navigating away and back
-    selectSkill({ ...skill, content, tags: parsed.tags, name: parsed.name, description: parsed.description })
     setSaving(false)
   }
 
