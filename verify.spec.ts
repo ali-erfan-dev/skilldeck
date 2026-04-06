@@ -1,0 +1,471 @@
+/**
+ * verify.spec.ts
+ * 
+ * Playwright end-to-end verification for Skilldeck Phase 1 features.
+ * 
+ * This is the enforcement layer. Agents run this BEFORE marking any feature
+ * as passing in feature_list.json. If a test fails, the feature does not pass.
+ * 
+ * Usage:
+ *   npx playwright test verify.spec.ts
+ *   npx playwright test verify.spec.ts --grep "F001"
+ * 
+ * Requirements:
+ *   npm install -D @playwright/test playwright electron-playwright-helpers
+ * 
+ * The app must be buildable with: npm run build
+ * Playwright will launch it via electron directly.
+ */
+
+import { test, expect, _electron as electron } from '@playwright/test'
+import type { ElectronApplication, Page } from '@playwright/test'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
+import * as crypto from 'crypto'
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const SKILLDECK_DIR = path.join(os.homedir(), '.skilldeck')
+const LIBRARY_DIR = path.join(SKILLDECK_DIR, 'library')
+const CONFIG_PATH = path.join(SKILLDECK_DIR, 'config.json')
+const DEPLOYMENTS_PATH = path.join(SKILLDECK_DIR, 'deployments.json')
+
+function cleanSkilldeck() {
+  if (fs.existsSync(SKILLDECK_DIR)) {
+    fs.rmSync(SKILLDECK_DIR, { recursive: true, force: true })
+  }
+}
+
+function seedSkill(name: string, content: string) {
+  fs.mkdirSync(LIBRARY_DIR, { recursive: true })
+  fs.writeFileSync(path.join(LIBRARY_DIR, `${name}.md`), content)
+}
+
+function makeSkillContent(name: string, description: string, tags: string[] = []) {
+  return `---
+name: ${name}
+description: ${description}
+tags: [${tags.join(', ')}]
+---
+
+# ${name}
+
+${description}
+`
+}
+
+async function launchApp(): Promise<{ app: ElectronApplication; window: Page }> {
+  const app = await electron.launch({
+    args: ['.'],
+    env: { ...process.env, NODE_ENV: 'test' }
+  })
+
+  // Capture main process stdout
+  app.process().stdout?.on('data', data => {
+    console.log('Main stdout:', data.toString())
+  })
+  app.process().stderr?.on('data', data => {
+    console.log('Main stderr:', data.toString())
+  })
+
+  const window = await app.firstWindow()
+  await window.waitForLoadState('domcontentloaded')
+
+  // Capture console errors
+  window.on('console', msg => {
+    if (msg.type() === 'error') {
+      console.log('Console error:', msg.text())
+    }
+  })
+
+  // Wait for React to render the app
+  await window.waitForSelector('[data-testid="nav-library"], [data-nav="library"]', { timeout: 10000 })
+  // Wait for the library view to finish loading
+  await window.waitForTimeout(1500)
+  return { app, window }
+}
+
+// ─── F001: App launches ──────────────────────────────────────────────────────
+
+test('F001 - App launches without errors', async () => {
+  const { app, window } = await launchApp()
+
+  // Window opened
+  expect(window).toBeTruthy()
+
+  // No fatal error screen
+  const bodyText = await window.textContent('body')
+  expect(bodyText).not.toContain('Cannot read')
+  expect(bodyText).not.toContain('Uncaught Error')
+
+  // Title exists
+  const title = await window.title()
+  expect(title.length).toBeGreaterThan(0)
+
+  // Check console for errors
+  const errors: string[] = []
+  window.on('console', msg => {
+    if (msg.type() === 'error') errors.push(msg.text())
+  })
+
+  // Small wait to catch any immediate errors
+  await window.waitForTimeout(1000)
+  expect(errors.filter(e => !e.includes('favicon'))).toHaveLength(0)
+
+  await app.close()
+})
+
+// ─── F002: Config initializes on first run ───────────────────────────────────
+
+test('F002 - Config initializes on first run', async () => {
+  cleanSkilldeck()
+
+  const { app } = await launchApp()
+  await new Promise(r => setTimeout(r, 1500)) // wait for init
+
+  // ~/.skilldeck/ created
+  expect(fs.existsSync(SKILLDECK_DIR)).toBe(true)
+
+  // config.json created and valid
+  expect(fs.existsSync(CONFIG_PATH)).toBe(true)
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  expect(config).toHaveProperty('libraryPath')
+  expect(config).toHaveProperty('projects')
+  expect(Array.isArray(config.projects)).toBe(true)
+
+  // library/ created
+  expect(fs.existsSync(LIBRARY_DIR)).toBe(true)
+
+  // deployments.json created
+  expect(fs.existsSync(DEPLOYMENTS_PATH)).toBe(true)
+  const deployments = JSON.parse(fs.readFileSync(DEPLOYMENTS_PATH, 'utf8'))
+  expect(typeof deployments).toBe('object')
+
+  await app.close()
+})
+
+// ─── F003: Navigation ────────────────────────────────────────────────────────
+
+test('F003 - Three-panel navigation works', async () => {
+  const { app, window } = await launchApp()
+
+  // Wait for React to render
+  await window.waitForSelector('[data-testid="library-view"]', { timeout: 10000 })
+
+  // Library is default view
+  await expect(window.locator('[data-view="library"], [data-testid="library-view"]')).toBeVisible()
+
+  // Navigate to Projects
+  await window.click('[data-nav="projects"], [data-testid="nav-projects"]')
+  await expect(window.locator('[data-view="projects"], [data-testid="projects-view"]')).toBeVisible()
+
+  // Navigate to Settings
+  await window.click('[data-nav="settings"], [data-testid="nav-settings"]')
+  await expect(window.locator('[data-view="settings"], [data-testid="settings-view"]')).toBeVisible()
+
+  // Back to Library
+  await window.click('[data-nav="library"], [data-testid="nav-library"]')
+  await expect(window.locator('[data-view="library"], [data-testid="library-view"]')).toBeVisible()
+
+  await app.close()
+})
+
+// ─── F004: Library shows skill files ─────────────────────────────────────────
+
+test('F004 - Library view shows all skill files', async () => {
+  cleanSkilldeck()
+  seedSkill('scope-killer', makeSkillContent('Scope Killer', 'Kills scope creep', ['thinking', 'scoping']))
+  seedSkill('ship-or-kill', makeSkillContent('Ship or Kill Gate', 'Forces shipping decisions', ['process']))
+  seedSkill('context-guard', makeSkillContent('Context Switch Guard', 'Protects deep work', ['focus']))
+
+  const { app, window } = await launchApp()
+
+  // Navigate to library (should be default)
+  await window.waitForSelector('[data-testid="skill-item"], [data-skill]', { timeout: 5000 })
+
+  const skillItems = await window.locator('[data-testid="skill-item"], [data-skill]').count()
+  expect(skillItems).toBe(3)
+
+  // Names visible
+  await expect(window.locator('text=Scope Killer')).toBeVisible()
+  await expect(window.locator('text=Ship or Kill Gate')).toBeVisible()
+  await expect(window.locator('text=Context Switch Guard')).toBeVisible()
+
+  await app.close()
+})
+
+test('F004b - Library shows empty state when no skills', async () => {
+  cleanSkilldeck()
+  const { app, window } = await launchApp()
+
+  // Empty state message should be visible
+  const emptyState = window.locator('[data-testid="empty-state"], text=No skills yet, text=Add your first skill')
+  await expect(emptyState).toBeVisible({ timeout: 3000 })
+
+  await app.close()
+})
+
+// ─── F005: Create new skill ───────────────────────────────────────────────────
+
+test('F005 - Create new skill', async () => {
+  cleanSkilldeck()
+  const { app, window } = await launchApp()
+
+  // Click new skill button
+  await window.click('[data-testid="new-skill-btn"], button:has-text("New Skill"), button:has-text("+ New")')
+
+  // A new skill appears in the list
+  await window.waitForSelector('[data-testid="skill-item"], [data-skill]', { timeout: 3000 })
+  const skillItems = await window.locator('[data-testid="skill-item"], [data-skill]').count()
+  expect(skillItems).toBeGreaterThan(0)
+
+  // File exists on disk
+  const files = fs.readdirSync(LIBRARY_DIR).filter(f => f.endsWith('.md'))
+  expect(files.length).toBeGreaterThan(0)
+
+  // File has valid frontmatter
+  const content = fs.readFileSync(path.join(LIBRARY_DIR, files[0]), 'utf8')
+  expect(content).toContain('---')
+  expect(content).toContain('name:')
+
+  await app.close()
+})
+
+// ─── F006: Edit skill — content saves to disk ────────────────────────────────
+
+test('F006 - Edit skill content saves to disk', async () => {
+  cleanSkilldeck()
+  seedSkill('test-skill', makeSkillContent('Test Skill', 'Original description'))
+
+  const { app, window } = await launchApp()
+
+  // Click the skill to open editor
+  await window.click('[data-testid="skill-item"], [data-skill]')
+
+  // Find the editor textarea/contenteditable
+  const editor = window.locator('[data-testid="skill-editor"], textarea[data-role="editor"], .skill-editor')
+  await expect(editor).toBeVisible({ timeout: 3000 })
+
+  // Clear and type new content
+  await editor.click({ clickCount: 3 }) // select all
+  await editor.fill('# Updated Content\n\nThis is new content.')
+
+  // Save (look for save button or auto-save)
+  const saveBtn = window.locator('[data-testid="save-btn"], button:has-text("Save")')
+  if (await saveBtn.isVisible()) {
+    await saveBtn.click()
+  } else {
+    // Auto-save — wait a moment
+    await window.waitForTimeout(1500)
+  }
+
+  // Verify file on disk changed
+  const content = fs.readFileSync(path.join(LIBRARY_DIR, 'test-skill.md'), 'utf8')
+  expect(content).toContain('Updated Content')
+
+  await app.close()
+})
+
+// ─── F008: Delete skill ───────────────────────────────────────────────────────
+
+test('F008 - Delete skill with confirmation', async () => {
+  cleanSkilldeck()
+  seedSkill('delete-me', makeSkillContent('Delete Me', 'This skill will be deleted'))
+
+  const { app, window } = await launchApp()
+
+  await window.waitForSelector('[data-testid="skill-item"], [data-skill]', { timeout: 3000 })
+
+  // Right-click or find delete button
+  const skillItem = window.locator('[data-testid="skill-item"], [data-skill]').first()
+  await skillItem.click({ button: 'right' })
+
+  // Click delete in context menu, or find delete button
+  const deleteBtn = window.locator('[data-testid="delete-skill"], button:has-text("Delete"), text=Delete')
+  await expect(deleteBtn).toBeVisible({ timeout: 2000 })
+  await deleteBtn.click()
+
+  // Confirmation dialog
+  const confirmBtn = window.locator('[data-testid="confirm-delete"], button:has-text("Confirm"), button:has-text("Delete"), button:has-text("Yes")')
+  await expect(confirmBtn).toBeVisible({ timeout: 2000 })
+  await confirmBtn.click()
+
+  // Skill gone from list
+  await window.waitForTimeout(500)
+  const skillItems = await window.locator('[data-testid="skill-item"], [data-skill]').count()
+  expect(skillItems).toBe(0)
+
+  // File deleted from disk
+  expect(fs.existsSync(path.join(LIBRARY_DIR, 'delete-me.md'))).toBe(false)
+
+  await app.close()
+})
+
+// ─── F009: Search skills ──────────────────────────────────────────────────────
+
+test('F009 - Search filters skill list', async () => {
+  cleanSkilldeck()
+  seedSkill('scope-killer', makeSkillContent('Scope Killer', 'Kills scope creep'))
+  seedSkill('ship-gate', makeSkillContent('Ship Gate', 'Forces shipping'))
+  seedSkill('context-guard', makeSkillContent('Context Guard', 'Protects focus'))
+
+  const { app, window } = await launchApp()
+
+  await window.waitForSelector('[data-testid="skill-item"], [data-skill]', { timeout: 3000 })
+
+  // Type in search
+  const search = window.locator('[data-testid="search-input"], input[type="search"], input[placeholder*="Search"]')
+  await search.fill('scope')
+
+  // Only matching skill visible
+  await expect(window.locator('text=Scope Killer')).toBeVisible()
+  const visibleItems = await window.locator('[data-testid="skill-item"], [data-skill]').count()
+  expect(visibleItems).toBe(1)
+
+  // Clear search
+  await search.fill('')
+  const allItems = await window.locator('[data-testid="skill-item"], [data-skill]').count()
+  expect(allItems).toBe(3)
+
+  await app.close()
+})
+
+// ─── F011: Register a project ─────────────────────────────────────────────────
+
+test('F011 - Register a project', async () => {
+  cleanSkilldeck()
+
+  // Create a temp directory to register as a project
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skilldeck-test-project-'))
+
+  const { app, window } = await launchApp()
+
+  // Navigate to Projects
+  await window.click('[data-nav="projects"], [data-testid="nav-projects"]')
+
+  // Click Add Project
+  await window.click('[data-testid="add-project-btn"], button:has-text("Add Project"), button:has-text("+ Project")')
+
+  // Fill in project name
+  const nameInput = window.locator('[data-testid="project-name-input"], input[name="projectName"], input[placeholder*="name"]')
+  await nameInput.fill('Test Project')
+
+  // Fill in path (type it manually — folder picker not testable)
+  const pathInput = window.locator('[data-testid="project-path-input"], input[name="projectPath"], input[placeholder*="path"]')
+  await pathInput.fill(projectDir)
+
+  // Confirm
+  await window.click('[data-testid="confirm-add-project"], button:has-text("Add"), button:has-text("Confirm"), button:has-text("Save")')
+
+  // Project appears in list
+  await expect(window.locator('text=Test Project')).toBeVisible({ timeout: 3000 })
+
+  // Config updated on disk
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  const project = config.projects.find((p: any) => p.name === 'Test Project')
+  expect(project).toBeTruthy()
+  expect(project.path).toBe(projectDir)
+
+  // Cleanup
+  fs.rmSync(projectDir, { recursive: true, force: true })
+  await app.close()
+})
+
+// ─── F014: Deploy a skill to a project ───────────────────────────────────────
+
+test('F014 - Deploy skill to project', async () => {
+  cleanSkilldeck()
+
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skilldeck-test-project-'))
+  seedSkill('scope-killer', makeSkillContent('Scope Killer', 'Kills scope creep'))
+
+  // Pre-seed a project in config
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{
+      id: 'test-project-1',
+      name: 'Test Project',
+      path: projectDir,
+      skillsPath: '.claude/skills'
+    }]
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify({}))
+
+  const { app, window } = await launchApp()
+
+  // Select the skill
+  await window.click('[data-testid="skill-item"], [data-skill]')
+
+  // Click Deploy
+  await window.click('[data-testid="deploy-btn"], button:has-text("Deploy")')
+
+  // Select project from dropdown/list
+  await window.click('text=Test Project')
+
+  // Confirm
+  const confirmBtn = window.locator('[data-testid="confirm-deploy"], button:has-text("Deploy"), button:has-text("Confirm")')
+  if (await confirmBtn.isVisible()) await confirmBtn.click()
+
+  // File exists at project path
+  const deployedPath = path.join(projectDir, '.claude', 'skills', 'scope-killer.md')
+  await window.waitForTimeout(1000)
+  expect(fs.existsSync(deployedPath)).toBe(true)
+
+  // Deployment record exists
+  const deployments = JSON.parse(fs.readFileSync(DEPLOYMENTS_PATH, 'utf8'))
+  expect(deployments['test-project-1']).toBeTruthy()
+  expect(deployments['test-project-1']['scope-killer']).toBeTruthy()
+
+  fs.rmSync(projectDir, { recursive: true, force: true })
+  await app.close()
+})
+
+// ─── F015: Deployment state current vs stale ─────────────────────────────────
+
+test('F015 - Deployment state current vs stale', async () => {
+  cleanSkilldeck()
+
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skilldeck-test-project-'))
+  const skillContent = makeSkillContent('Scope Killer', 'Kills scope creep')
+  seedSkill('scope-killer', skillContent)
+
+  // Deploy manually
+  const deployedDir = path.join(projectDir, '.claude', 'skills')
+  fs.mkdirSync(deployedDir, { recursive: true })
+  fs.writeFileSync(path.join(deployedDir, 'scope-killer.md'), skillContent)
+
+  const hash = crypto.createHash('md5').update(skillContent).digest('hex')
+
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{ id: 'proj-1', name: 'Test Project', path: projectDir, skillsPath: '.claude/skills' }]
+  }
+  const deployments = {
+    'proj-1': {
+      'scope-killer': { deployedAt: new Date().toISOString(), libraryHash: hash, currentHash: hash }
+    }
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify(deployments, null, 2))
+
+  const { app, window } = await launchApp()
+
+  // Should show as Current
+  await expect(window.locator('[data-testid="status-current"], text=Current').first()).toBeVisible({ timeout: 3000 })
+
+  // Now modify the library skill to make it stale
+  const newContent = skillContent + '\n\n## New Section\nAdded content.'
+  fs.writeFileSync(path.join(LIBRARY_DIR, 'scope-killer.md'), newContent)
+
+  // Trigger refresh (click away and back, or wait for file watcher)
+  await window.click('[data-nav="projects"], [data-testid="nav-projects"]')
+  await window.click('[data-nav="library"], [data-testid="nav-library"]')
+
+  // Should now show as Stale
+  await expect(window.locator('[data-testid="status-stale"], text=Stale').first()).toBeVisible({ timeout: 3000 })
+
+  fs.rmSync(projectDir, { recursive: true, force: true })
+  await app.close()
+})

@@ -1,0 +1,300 @@
+{
+  "version": "1.0",
+  "phase": 1,
+  "description": "Phase 1 — Library + Projects + Deployment State. No AI calls. No Playground. Foundation only.",
+  "rules": [
+    "Never remove a feature from this file",
+    "Never rewrite feature descriptions",
+    "Only update passes and notes fields",
+    "A feature passes only when it works end-to-end as a user would experience it",
+    "Mark passes as true only after manual verification, not after writing the code"
+  ],
+  "features": [
+    {
+      "id": "F001",
+      "category": "bootstrap",
+      "name": "App launches",
+      "description": "Electron app launches without errors. Main window opens. No console errors on startup.",
+      "steps": [
+        "Run npm run dev or npm start",
+        "Electron window opens",
+        "React app renders inside the window",
+        "No errors in terminal or DevTools console"
+      ],
+      "passes": true,
+      "notes": "Verified with Playwright"
+    },
+    {
+      "id": "F002",
+      "category": "bootstrap",
+      "name": "Config initializes on first run",
+      "description": "On first launch, ~/.skilldeck/ directory is created. config.json and deployments.json are initialized with defaults. Library directory is created at ~/.skilldeck/library.",
+      "steps": [
+        "Delete ~/.skilldeck if it exists",
+        "Launch app",
+        "Verify ~/.skilldeck/ was created",
+        "Verify ~/.skilldeck/config.json exists with valid default JSON",
+        "Verify ~/.skilldeck/library/ directory was created",
+        "Verify ~/.skilldeck/deployments.json exists with empty object {}"
+      ],
+      "passes": true,
+      "notes": "Verified with Playwright"
+    },
+    {
+      "id": "F003",
+      "category": "navigation",
+      "name": "Three-panel navigation works",
+      "description": "App has three main views: Library, Projects, Settings. Navigation between them works. Active view is visually indicated.",
+      "steps": [
+        "Launch app",
+        "Verify Library view is shown by default",
+        "Click Projects in navigation",
+        "Verify Projects view renders",
+        "Click Settings in navigation",
+        "Verify Settings view renders",
+        "Click Library — verify it returns to Library view",
+        "Verify active nav item is visually distinguished"
+      ],
+      "passes": true,
+      "notes": "Verified with Playwright"
+    },
+    {
+      "id": "F004",
+      "category": "library",
+      "name": "Library view shows all skill files",
+      "description": "Library view reads all .md files from ~/.skilldeck/library/ and displays them as a list. Each item shows: skill name (from frontmatter or filename), description (from frontmatter), tags if present.",
+      "steps": [
+        "Add 3 .md files to ~/.skilldeck/library/ with frontmatter",
+        "Open Library view",
+        "Verify all 3 skills appear in the list",
+        "Verify name, description, and tags render correctly for each",
+        "Verify empty state message shows when library is empty"
+      ],
+      "passes": true,
+      "notes": "Verified with Playwright"
+    },
+    {
+      "id": "F005",
+      "category": "library",
+      "name": "Create new skill",
+      "description": "User can create a new skill from the Library view. A new .md file is created in ~/.skilldeck/library/ with a default frontmatter template. The new skill appears in the list immediately.",
+      "steps": [
+        "Click New Skill button",
+        "Verify a new skill appears in the list with a default name",
+        "Verify the .md file was created on disk in ~/.skilldeck/library/",
+        "Verify it contains valid frontmatter template"
+      ],
+      "passes": true,
+      "notes": "Verified with Playwright"
+    },
+    {
+      "id": "F006",
+      "category": "library",
+      "name": "Edit skill — content saves to disk",
+      "description": "Clicking a skill opens an editor. User can edit the markdown content. Changes are saved to disk (either auto-save or explicit save). The file on disk reflects the edited content.",
+      "steps": [
+        "Click a skill in the library",
+        "Verify editor opens with the skill's current content",
+        "Edit the content",
+        "Save (or wait for auto-save)",
+        "Open the file in a text editor externally",
+        "Verify the file on disk matches what was typed in the app"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F007",
+      "category": "library",
+      "name": "Edit skill — frontmatter fields editable",
+      "description": "The skill editor exposes name, description, and tags as editable fields separate from the markdown body. Changes to these fields update the frontmatter in the file on disk.",
+      "steps": [
+        "Open a skill in the editor",
+        "Change the name field",
+        "Change the description field",
+        "Add a tag",
+        "Save",
+        "Verify the .md file frontmatter on disk reflects all changes",
+        "Close and reopen the skill — verify changes persisted"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F008",
+      "category": "library",
+      "name": "Delete skill",
+      "description": "User can delete a skill from the library. A confirmation dialog appears. On confirm, the .md file is deleted from disk. The skill disappears from the list.",
+      "steps": [
+        "Right-click or use menu to delete a skill",
+        "Verify confirmation dialog appears",
+        "Confirm deletion",
+        "Verify skill disappears from the list",
+        "Verify the .md file no longer exists on disk"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F009",
+      "category": "library",
+      "name": "Search skills by name and description",
+      "description": "A search input in the Library view filters the skill list in real time by name and description content.",
+      "steps": [
+        "Add 5+ skills with distinct names and descriptions",
+        "Type a search term that matches 2 skills by name",
+        "Verify only matching skills appear",
+        "Clear search — verify all skills return",
+        "Type a term that matches by description only",
+        "Verify matching skills appear"
+      ],
+      "passes": true,
+      "notes": "Verified with Playwright"
+    },
+    {
+      "id": "F010",
+      "category": "library",
+      "name": "Filter skills by tag",
+      "description": "Tags shown in the Library view are clickable. Clicking a tag filters the list to skills with that tag. Multiple tags can be selected. Clear button removes filter.",
+      "steps": [
+        "Add skills with different tags",
+        "Click a tag in the tag filter area",
+        "Verify list filters to skills with that tag",
+        "Click a second tag",
+        "Verify list shows skills matching either tag",
+        "Click clear — verify all skills return"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F011",
+      "category": "projects",
+      "name": "Register a project",
+      "description": "User can register a project by providing a name and a directory path. Path can be entered manually or via a native folder picker. Project is saved to config.json.",
+      "steps": [
+        "Navigate to Projects view",
+        "Click Add Project",
+        "Enter a project name",
+        "Use folder picker to select a directory",
+        "Confirm",
+        "Verify project appears in the projects list",
+        "Verify config.json on disk contains the new project entry"
+      ],
+      "passes": true,
+      "notes": "Verified with Playwright"
+    },
+    {
+      "id": "F012",
+      "category": "projects",
+      "name": "Remove a project",
+      "description": "User can remove a registered project. Confirmation dialog appears. Project is removed from config.json. Deployment records for that project are preserved in deployments.json (not deleted).",
+      "steps": [
+        "Register a project",
+        "Remove the project via menu or button",
+        "Verify confirmation dialog appears",
+        "Confirm removal",
+        "Verify project no longer appears in the list",
+        "Verify config.json no longer contains the project",
+        "Verify deployments.json still contains any prior deployment records for that project"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F013",
+      "category": "projects",
+      "name": "Configure skills path per project",
+      "description": "Each project has a configurable skills path — the subdirectory within the project where skill files are deployed (default: .claude/skills). User can edit this in project settings.",
+      "steps": [
+        "Register a project",
+        "Open project settings",
+        "Change skills path to a custom value",
+        "Save",
+        "Verify config.json reflects the updated skills path for that project"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F014",
+      "category": "deployment",
+      "name": "Deploy a skill to a project",
+      "description": "From a skill in the library, user can deploy it to a registered project. The skill file is copied to the project's skills path. A deployment record is written to deployments.json with the timestamp and file hash.",
+      "steps": [
+        "Register a project",
+        "Select a skill in the library",
+        "Click Deploy, select the target project",
+        "Verify the skill file now exists at [project path]/[skills path]/[skill-name].md",
+        "Verify deployments.json contains a record for this project + skill with deployedAt and libraryHash"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F015",
+      "category": "deployment",
+      "name": "Deployment state: current vs stale",
+      "description": "For each deployed skill, the app computes whether the deployed file matches the current library version (by comparing hashes). Current = hashes match. Stale = hashes differ. This state is visible in both the Library view (per skill) and the Projects view (per project).",
+      "steps": [
+        "Deploy a skill to a project",
+        "Verify skill shows as Current in the library and in the project view",
+        "Edit the skill in the library (change content)",
+        "Verify skill now shows as Stale in both views without refreshing manually",
+        "Re-deploy the skill",
+        "Verify it returns to Current"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F016",
+      "category": "deployment",
+      "name": "View all deployed skills per project",
+      "description": "Clicking a project shows a list of all skills currently deployed to it, each with their deployment state (current/stale), deployed timestamp, and a re-deploy action.",
+      "steps": [
+        "Deploy 3 skills to a project",
+        "Click the project",
+        "Verify all 3 deployed skills appear",
+        "Verify each shows deployment state, timestamp",
+        "Modify one library skill to make it stale",
+        "Verify it shows as Stale in this view",
+        "Click re-deploy on the stale skill",
+        "Verify it returns to Current"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F017",
+      "category": "deployment",
+      "name": "Undeploy a skill from a project",
+      "description": "User can remove a deployed skill from a project. The file is deleted from the project's skills path. The deployment record is removed from deployments.json.",
+      "steps": [
+        "Deploy a skill to a project",
+        "Undeploy it",
+        "Verify the file no longer exists at the project skills path",
+        "Verify the deployment record is removed from deployments.json",
+        "Verify the skill no longer appears in the project's deployed skills list"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F018",
+      "category": "settings",
+      "name": "Settings view — library path configurable",
+      "description": "Settings view shows the current library path. User can change it via folder picker. Config.json is updated. The library view reloads to show skills from the new path.",
+      "steps": [
+        "Open Settings",
+        "Verify current library path is shown",
+        "Change it to a different directory containing .md files",
+        "Save",
+        "Navigate to Library view",
+        "Verify skills from the new path are shown"
+      ],
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

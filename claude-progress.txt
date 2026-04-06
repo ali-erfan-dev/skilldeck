@@ -1,0 +1,52 @@
+# Skilldeck — Agent Progress Log
+
+## Project Status
+Phase: 1 (Foundation)
+Started: 2026-04-05
+Last updated: 2026-04-05 (initialization)
+Features passing: 0 / 18
+
+## How to Use This File
+- Read this at the start of every session BEFORE touching any code
+- Write a new session entry at the END of every session BEFORE committing
+- Be specific — the next agent (or you in a future session) depends on this being accurate
+- Do not delete old entries
+
+---
+
+## Session Log
+
+### Session 0 — Harness Initialization (2026-04-05)
+**What happened:** Harness package created. No code written yet.
+**Files created:**
+- CLAUDE.md (project bible)
+- feature_list.json (18 Phase 1 features, all passing: false)
+- claude-progress.txt (this file)
+- init.ps1 or .\init.sh (dev environment startup — Windows PowerShell)
+
+**Current app state:** No repo exists yet. First coding session should scaffold the repo.
+
+**Next session should:**
+1. Run .\init.ps1 or .\init.sh to verify Node/npm environment
+2. Scaffold the Electron + React + TypeScript + Vite project
+3. Work through F001 (App launches) and F002 (Config initializes on first run)
+4. Commit with message: "feat: initial project scaffold"
+
+**Blockers:** None.
+
+**Suggested additions:** None yet.
+
+---
+
+<!-- Template for future sessions:
+
+### Session N — [brief title] ([date])
+**What happened:** [what was built/fixed/discovered]
+**Features completed this session:** [F00X, F00Y]
+**Features attempted but not completed:** [F00Z — reason]
+**Current app state:** [does it run? what works? what's broken?]
+**Next session should:** [specific next steps]
+**Blockers:** [anything blocking progress]
+**Suggested additions:** [features not in feature_list.json worth considering]
+
+-->

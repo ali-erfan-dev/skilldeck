@@ -1,0 +1,747 @@
+{
+  "config": {
+    "configFile": "C:\\projects\\personal\\skilldeck\\playwright.config.ts",
+    "rootDir": "C:/projects/personal/skilldeck",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/projects/personal/skilldeck/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/projects/personal/skilldeck",
+        "testIgnore": [],
+        "testMatch": [
+          "verify.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/verify-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 11,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "verify.spec.ts",
+      "file": "verify.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "F001 - App launches without errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5433,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [31936:0405/232418.739:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [31936:0405/232418.739:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [31936:0405/232418.786:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[31936:0405/232418.786:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [31936:0405/232418.786:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[31936:0405/232418.786:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: Debugger ending on ws://127.0.0.1:63241/9866f428-ce15-40d7-930a-23d709ddbd53\r\nFor help, see: https://nodejs.org/en/docs/inspector\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:18.203Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-1f2e0faef6215f83d5d4",
+          "file": "verify.spec.ts",
+          "line": 91,
+          "column": 1
+        },
+        {
+          "title": "F002 - Config initializes on first run",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5398,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [34588:0405/232424.069:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n[34588:0405/232424.069:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [34588:0405/232424.072:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[34588:0405/232424.072:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[34588:0405/232424.072:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[34588:0405/232424.072:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: Debugger ending on ws://127.0.0.1:63247/22cf18e7-c024-4b04-a9ff-253ecf73d2d8\r\nFor help, see: https://nodejs.org/en/docs/inspector\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:23.653Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-d69e5d1776bfea190d2f",
+          "file": "verify.spec.ts",
+          "line": 121,
+          "column": 1
+        },
+        {
+          "title": "F003 - Three-panel navigation works",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3466,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [64984:0405/232429.477:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n[64984:0405/232429.477:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [64984:0405/232429.480:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[64984:0405/232429.480:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[64984:0405/232429.481:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[64984:0405/232429.481:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: Debugger ending on ws://127.0.0.1:54129/9ba82130-986a-4b80-8bb4-e66eb67382c0\r\nFor help, see: https://nodejs.org/en/docs/inspector\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:29.061Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-e4ba4a1d1f8ae0148ca4",
+          "file": "verify.spec.ts",
+          "line": 150,
+          "column": 1
+        },
+        {
+          "title": "F004 - Library view shows all skill files",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3099,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [17084:0405/232432.952:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n[17084:0405/232432.952:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [17084:0405/232432.957:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[17084:0405/232432.957:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[17084:0405/232432.957:ERROR:disk_cache.cc(208)] Unable to create cache\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [17084:0405/232432.957:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: Debugger ending on ws://127.0.0.1:54135/5a5169c2-4f3c-4806-9c32-c3eb7a543feb\r\nFor help, see: https://nodejs.org/en/docs/inspector\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:32.539Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-d0e9f05b430869047aac",
+          "file": "verify.spec.ts",
+          "line": 176,
+          "column": 1
+        },
+        {
+          "title": "F004b - Library shows empty state when no skills",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2149,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\u001b[22m\n\n    at C:\\projects\\personal\\skilldeck\\verify.spec.ts:204:28",
+                    "location": {
+                      "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                      "column": 28,
+                      "line": 204
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 202 |\u001b[39m   \u001b[90m// Empty state message should be visible\u001b[39m\n \u001b[90m 203 |\u001b[39m   \u001b[36mconst\u001b[39m emptyState \u001b[33m=\u001b[39m window\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill'\u001b[39m)\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 204 |\u001b[39m   \u001b[36mawait\u001b[39m expect(emptyState)\u001b[33m.\u001b[39mtoBeVisible({ timeout\u001b[33m:\u001b[39m \u001b[35m3000\u001b[39m })\n \u001b[90m     |\u001b[39m                            \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 205 |\u001b[39m\n \u001b[90m 206 |\u001b[39m   \u001b[36mawait\u001b[39m app\u001b[33m.\u001b[39mclose()\n \u001b[90m 207 |\u001b[39m })\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                        "column": 28,
+                        "line": 204
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill\u001b[22m\n\n\n  202 |   // Empty state message should be visible\n  203 |   const emptyState = window.locator('[data-testid=\"empty-state\"], text=No skills yet, text=Add your first skill')\n> 204 |   await expect(emptyState).toBeVisible({ timeout: 3000 })\n      |                            ^\n  205 |\n  206 |   await app.close()\n  207 | })\n    at C:\\projects\\personal\\skilldeck\\verify.spec.ts:204:28"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [25464:0405/232436.050:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n[25464:0405/232436.050:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [25464:0405/232436.054:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[25464:0405/232436.054:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[25464:0405/232436.054:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[25464:0405/232436.054:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:35.646Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\projects\\personal\\skilldeck\\test-results\\verify-F004b---Library-shows-empty-state-when-no-skills\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                    "column": 28,
+                    "line": 204
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-ef61393d8d6515bb3914",
+          "file": "verify.spec.ts",
+          "line": 198,
+          "column": 1
+        },
+        {
+          "title": "F005 - Create new skill",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3413,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [88016:0405/232439.789:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n[88016:0405/232439.789:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [88016:0405/232439.791:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[88016:0405/232439.791:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[88016:0405/232439.791:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[88016:0405/232439.791:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: Debugger ending on ws://127.0.0.1:54147/e917eb45-808a-433b-8a2c-2e3d0d724a6d\r\nFor help, see: https://nodejs.org/en/docs/inspector\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:39.354Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-0132f44b1747b69950e9",
+          "file": "verify.spec.ts",
+          "line": 211,
+          "column": 1
+        },
+        {
+          "title": "F006 - Edit skill content saves to disk",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2349,
+                  "error": {
+                    "message": "Error: locator.fill: Error: Element is not an <input>, <textarea>, <select> or [contenteditable] and does not have a role allowing [aria-readonly]\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"skill-editor\"], textarea[data-role=\"editor\"], .skill-editor')\u001b[22m\n\u001b[2m    - locator resolved to <div data-testid=\"skill-editor\" class=\"h-full flex flex-col\">…</div>\u001b[22m\n\u001b[2m    - fill(\"# Updated Content\u001b[22m\n\n\u001b[2mThis is new content.\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n",
+                    "stack": "Error: locator.fill: Error: Element is not an <input>, <textarea>, <select> or [contenteditable] and does not have a role allowing [aria-readonly]\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"skill-editor\"], textarea[data-role=\"editor\"], .skill-editor')\u001b[22m\n\u001b[2m    - locator resolved to <div data-testid=\"skill-editor\" class=\"h-full flex flex-col\">…</div>\u001b[22m\n\u001b[2m    - fill(\"# Updated Content\u001b[22m\n\n\u001b[2mThis is new content.\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n\n    at C:\\projects\\personal\\skilldeck\\verify.spec.ts:252:16",
+                    "location": {
+                      "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                      "column": 16,
+                      "line": 252
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 250 |\u001b[39m   \u001b[90m// Clear and type new content\u001b[39m\n \u001b[90m 251 |\u001b[39m   \u001b[36mawait\u001b[39m editor\u001b[33m.\u001b[39mclick({ clickCount\u001b[33m:\u001b[39m \u001b[35m3\u001b[39m }) \u001b[90m// select all\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 252 |\u001b[39m   \u001b[36mawait\u001b[39m editor\u001b[33m.\u001b[39mfill(\u001b[32m'# Updated Content\\n\\nThis is new content.'\u001b[39m)\n \u001b[90m     |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 253 |\u001b[39m\n \u001b[90m 254 |\u001b[39m   \u001b[90m// Save (look for save button or auto-save)\u001b[39m\n \u001b[90m 255 |\u001b[39m   \u001b[36mconst\u001b[39m saveBtn \u001b[33m=\u001b[39m window\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"save-btn\"], button:has-text(\"Save\")'\u001b[39m)\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                        "column": 16,
+                        "line": 252
+                      },
+                      "message": "Error: locator.fill: Error: Element is not an <input>, <textarea>, <select> or [contenteditable] and does not have a role allowing [aria-readonly]\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"skill-editor\"], textarea[data-role=\"editor\"], .skill-editor')\u001b[22m\n\u001b[2m    - locator resolved to <div data-testid=\"skill-editor\" class=\"h-full flex flex-col\">…</div>\u001b[22m\n\u001b[2m    - fill(\"# Updated Content\u001b[22m\n\n\u001b[2mThis is new content.\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and editable\u001b[22m\n\n\n  250 |   // Clear and type new content\n  251 |   await editor.click({ clickCount: 3 }) // select all\n> 252 |   await editor.fill('# Updated Content\\n\\nThis is new content.')\n      |                ^\n  253 |\n  254 |   // Save (look for save button or auto-save)\n  255 |   const saveBtn = window.locator('[data-testid=\"save-btn\"], button:has-text(\"Save\")')\n    at C:\\projects\\personal\\skilldeck\\verify.spec.ts:252:16"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [16140:0405/232443.224:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [16140:0405/232443.224:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [16140:0405/232443.228:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[16140:0405/232443.228:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[16140:0405/232443.228:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[16140:0405/232443.228:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:42.785Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\projects\\personal\\skilldeck\\test-results\\verify-F006---Edit-skill-content-saves-to-disk\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                    "column": 16,
+                    "line": 252
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-7b037ecb91c7f823cc1f",
+          "file": "verify.spec.ts",
+          "line": 237,
+          "column": 1
+        },
+        {
+          "title": "F008 - Delete skill with confirmation",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2230,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 2000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 2000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\u001b[22m\n\n    at C:\\projects\\personal\\skilldeck\\verify.spec.ts:286:27",
+                    "location": {
+                      "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                      "column": 27,
+                      "line": 286
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 284 |\u001b[39m   \u001b[90m// Click delete in context menu, or find delete button\u001b[39m\n \u001b[90m 285 |\u001b[39m   \u001b[36mconst\u001b[39m deleteBtn \u001b[33m=\u001b[39m window\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete'\u001b[39m)\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 286 |\u001b[39m   \u001b[36mawait\u001b[39m expect(deleteBtn)\u001b[33m.\u001b[39mtoBeVisible({ timeout\u001b[33m:\u001b[39m \u001b[35m2000\u001b[39m })\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 287 |\u001b[39m   \u001b[36mawait\u001b[39m deleteBtn\u001b[33m.\u001b[39mclick()\n \u001b[90m 288 |\u001b[39m\n \u001b[90m 289 |\u001b[39m   \u001b[90m// Confirmation dialog\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                        "column": 27,
+                        "line": 286
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 2000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete\u001b[22m\n\n\n  284 |   // Click delete in context menu, or find delete button\n  285 |   const deleteBtn = window.locator('[data-testid=\"delete-skill\"], button:has-text(\"Delete\"), text=Delete')\n> 286 |   await expect(deleteBtn).toBeVisible({ timeout: 2000 })\n      |                           ^\n  287 |   await deleteBtn.click()\n  288 |\n  289 |   // Confirmation dialog\n    at C:\\projects\\personal\\skilldeck\\verify.spec.ts:286:27"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [70068:0405/232447.397:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n[70068:0405/232447.397:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [70068:0405/232447.401:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[70068:0405/232447.401:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[70068:0405/232447.402:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[70068:0405/232447.402:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:46.943Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\projects\\personal\\skilldeck\\test-results\\verify-F008---Delete-skill-with-confirmation\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                    "column": 27,
+                    "line": 286
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-feffb18449b424f61131",
+          "file": "verify.spec.ts",
+          "line": 272,
+          "column": 1
+        },
+        {
+          "title": "F009 - Search filters skill list",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3394,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [86924:0405/232451.217:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n[86924:0405/232451.217:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [86924:0405/232451.221:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[86924:0405/232451.221:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[86924:0405/232451.221:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[86924:0405/232451.221:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: Debugger ending on ws://127.0.0.1:56058/59c4646d-f482-4a06-a217-b12af9297345\r\nFor help, see: https://nodejs.org/en/docs/inspector\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:50.780Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-75f2d68f6e346884fb7e",
+          "file": "verify.spec.ts",
+          "line": 307,
+          "column": 1
+        },
+        {
+          "title": "F011 - Register a project",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15972,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [67180:0405/232454.617:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [67180:0405/232454.617:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [67180:0405/232454.621:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[67180:0405/232454.622:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[67180:0405/232454.622:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[67180:0405/232454.622:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: Debugger ending on ws://127.0.0.1:56065/7968b1a6-f493-4445-b473-271034c26fcd\r\nFor help, see: https://nodejs.org/en/docs/inspector\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:24:54.192Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-488d02921d0b8e75aa01",
+          "file": "verify.spec.ts",
+          "line": 336,
+          "column": 1
+        },
+        {
+          "title": "F014 - Deploy skill to project",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 30003,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [22728:0405/232510.779:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [22728:0405/232510.780:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [22728:0405/232510.785:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[22728:0405/232510.785:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n[22728:0405/232510.786:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[22728:0405/232510.786:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:25:10.173Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\projects\\personal\\skilldeck\\test-results\\verify-F014---Deploy-skill-to-project\\error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-915e0b52a72a58b65050",
+          "file": "verify.spec.ts",
+          "line": 377,
+          "column": 1
+        },
+        {
+          "title": "F015 - Deployment state current vs stale",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3087,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"status-current\"], text=Current >> nth=0\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"status-current\"], text=Current\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"status-current\"], text=Current >> nth=0\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"status-current\"], text=Current >> nth=0\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"status-current\"], text=Current\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"status-current\"], text=Current >> nth=0\u001b[22m\n\n    at C:\\projects\\personal\\skilldeck\\verify.spec.ts:456:88",
+                    "location": {
+                      "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                      "column": 88,
+                      "line": 456
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 454 |\u001b[39m\n \u001b[90m 455 |\u001b[39m   \u001b[90m// Should show as Current\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 456 |\u001b[39m   \u001b[36mawait\u001b[39m expect(window\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"status-current\"], text=Current'\u001b[39m)\u001b[33m.\u001b[39mfirst())\u001b[33m.\u001b[39mtoBeVisible({ timeout\u001b[33m:\u001b[39m \u001b[35m3000\u001b[39m })\n \u001b[90m     |\u001b[39m                                                                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 457 |\u001b[39m\n \u001b[90m 458 |\u001b[39m   \u001b[90m// Now modify the library skill to make it stale\u001b[39m\n \u001b[90m 459 |\u001b[39m   \u001b[36mconst\u001b[39m newContent \u001b[33m=\u001b[39m skillContent \u001b[33m+\u001b[39m \u001b[32m'\\n\\n## New Section\\nAdded content.'\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                        "column": 88,
+                        "line": 456
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: [data-testid=\"status-current\"], text=Current >> nth=0\nExpected: visible\nError: Unexpected token \"=\" while parsing css selector \"[data-testid=\"status-current\"], text=Current\". Did you mean to CSS.escape it?\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for [data-testid=\"status-current\"], text=Current >> nth=0\u001b[22m\n\n\n  454 |\n  455 |   // Should show as Current\n> 456 |   await expect(window.locator('[data-testid=\"status-current\"], text=Current').first()).toBeVisible({ timeout: 3000 })\n      |                                                                                        ^\n  457 |\n  458 |   // Now modify the library skill to make it stale\n  459 |   const newContent = skillContent + '\\n\\n## New Section\\nAdded content.'\n    at C:\\projects\\personal\\skilldeck\\verify.spec.ts:456:88"
+                    }
+                  ],
+                  "stdout": [
+                    {
+                      "text": "Main stderr: [45096:0405/232541.521:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n[45096:0405/232541.521:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [45096:0405/232541.525:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[45096:0405/232541.525:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    },
+                    {
+                      "text": "Main stderr: [45096:0405/232541.525:ERROR:disk_cache.cc(208)] Unable to create cache\r\n[45096:0405/232541.525:ERROR:gpu_disk_cache.cc(676)] Gpu Cache Creation failed: -2\r\n\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-04-06T05:25:41.070Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\projects\\personal\\skilldeck\\test-results\\verify-F015---Deployment-state-current-vs-stale\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\projects\\personal\\skilldeck\\verify.spec.ts",
+                    "column": 88,
+                    "line": 456
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f7b216369e2b571fd06c-dc1244a2ec3070bc9380",
+          "file": "verify.spec.ts",
+          "line": 427,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-04-06T05:24:17.459Z",
+    "duration": 87037.52799999999,
+    "expected": 7,
+    "skipped": 0,
+    "unexpected": 5,
+    "flaky": 0
+  }
+}
