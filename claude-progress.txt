@@ -4,7 +4,7 @@
 Phase: 1 (Foundation)
 Started: 2026-04-05
 Last updated: 2026-04-06
-Features passing: 13 / 18
+Features passing: 15 / 18
 
 ## How to Use This File
 - Read this at the start of every session BEFORE touching any code
@@ -83,6 +83,28 @@ Features passing: 13 / 18
    - Copy skill file to project skills path
    - Record deployment in deployments.json
 3. Then F015-F018 (deployment state, view deployments, undeploy, settings)
+
+**Blockers:** None.
+
+**Suggested additions:** None yet.
+
+---
+### Session 3 — Deployment features (2026-04-06)
+**What happened:** Implemented F014 (deploy skill to project) and F015 (deployment status current vs stale). Added Deploy button to SkillEditor with project selection modal. Created deploymentStore to track deployment status. Added Current/Stale badges to LibraryView for deployed skills.
+
+**Features completed this session:** F014, F015
+
+**Features passing now:** 15 / 18
+
+**Current app state:** App runs. Library features complete (list, create, edit, delete, search, tag filtering, deployment status). Projects view has add/remove/edit skills path. Deploy functionality works. Deployment status (Current/Stale) shows in Library view.
+
+**Next session should:**
+1. Run ./init.sh
+2. Implement F016 (view all deployed skills per project) - requires:
+   - Expand ProjectsView to show deployed skills
+   - Add status, timestamp, re-deploy action
+3. Implement F017 (undeploy skill from project)
+4. Implement F018 (settings view - library path configurable)
 
 **Blockers:** None.
 
