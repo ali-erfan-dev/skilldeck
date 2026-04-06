@@ -301,16 +301,18 @@
       "phase": 2,
       "category": "discovery",
       "name": "Scan machine for all skill locations",
-      "description": "On startup and via a manual Scan button, Skilldeck scans all known skill locations on the machine and imports discovered skills into the library view with a source badge. Locations scanned: ~/.claude/skills/*/SKILL.md (Claude Code personal), ~/.claude/commands/*.md (Claude Code commands), ~/.agents/skills/*/SKILL.md (Agent Protocol standard), ~/.codex/skills/*/SKILL.md (Codex), ~/.skilldeck/library/*.md (Skilldeck own library), and .claude/skills/ inside any registered project. Skills found outside ~/.skilldeck/library/ are shown as discovered but not copied — source badge indicates origin.",
+      "description": "On startup and via a manual Scan button, Skilldeck scans all known skill locations on the machine and surfaces discovered skills in the library view with a source badge. All scans use recursive glob (**) not shallow (*) — tools can nest skills in subdirectories. Locations and source badges: ~/.claude/skills/**/SKILL.md → 'claude-code', ~/.claude/commands/**/*.md → 'claude-code-cmd', ~/.claude/skills/.system/**/SKILL.md → 'claude-code-system', ~/.codex/skills/**/SKILL.md → 'codex', ~/.codex/skills/.system/**/SKILL.md → 'codex-system', ~/.agents/skills/**/SKILL.md → 'agent-protocol', ~/.kiro/skills/**/SKILL.md → 'kiro', ~/.amp/skills/**/SKILL.md → 'amp', ~/.gemini/skills/**/SKILL.md → 'gemini', ~/.skilldeck/library/*.md → 'skilldeck', and for each registered project: .claude/skills/**/SKILL.md, .codex/skills/**/SKILL.md, .agents/skills/**/SKILL.md → 'project:[name]'. Skills found outside ~/.skilldeck/library/ are shown as discovered but not copied into the library — source badge indicates origin. Missing directories are silently skipped.",
       "steps": [
         "Open Skilldeck with skills present in ~/.claude/skills/",
         "Verify those skills appear in the library with a 'claude-code' source badge",
-        "Add a skill to ~/.agents/skills/",
-        "Click Scan button",
-        "Verify the new skill appears with 'agent-protocol' source badge",
+        "Add a skill to ~/.codex/skills/ — verify it appears with 'codex' badge after scan",
+        "Add a skill to ~/.agents/skills/ — verify it appears with 'agent-protocol' badge",
         "Verify skills from ~/.skilldeck/library/ show 'skilldeck' badge",
         "Verify registered project skills show 'project:[name]' badge",
-        "Verify no duplicates appear when the same skill name exists in multiple locations"
+        "Verify skills nested in subdirectories (e.g. ~/.claude/skills/gstack/deploy/SKILL.md) are found",
+        "Verify tools not installed (missing directories) are silently skipped with no error",
+        "Verify no duplicates appear when the same skill name exists in multiple locations",
+        "Verify Scan button triggers a fresh scan and picks up newly added skills"
       ],
       "passes": true,
       "notes": "Verified with Playwright"
@@ -339,16 +341,18 @@
       "phase": 2,
       "category": "discovery",
       "name": "Cross-tool sync — deploy to multiple tool locations",
-      "description": "When deploying a skill from the Skilldeck library, the user can choose to sync it to multiple tool locations simultaneously: ~/.claude/skills/ (Claude Code), ~/.agents/skills/ (Agent Protocol / Codex), or both. This resolves the known path mismatch where npx skill install writes to ~/.agents/skills/ but Claude Code reads from ~/.claude/skills/.",
+      "description": "When deploying a skill from the Skilldeck library, the user sees a list of sync targets built dynamically from whichever tools are actually installed on the machine (detected by checking if their skill directories exist). Possible targets: Claude Code (~/.claude/skills/), Codex (~/.codex/skills/), Agent Protocol (~/.agents/skills/), Kiro (~/.kiro/skills/), Amp (~/.amp/skills/), Gemini (~/.gemini/skills/). Only installed tools appear as options — missing directories are not shown. User can select one, multiple, or all. On confirm, the skill directory and SKILL.md are written to each selected location. This resolves the known path mismatch where npx skill install writes to ~/.agents/skills/ but Claude Code reads from ~/.claude/skills/.",
       "steps": [
+        "Ensure at least two tool directories exist on the machine",
         "Select a skill in the library",
         "Click Deploy",
-        "Verify sync target options are shown: Claude Code, Codex/Agent Protocol, Both",
-        "Select Both",
+        "Verify sync target list shows only tools that are actually installed",
+        "Verify tools without an existing skill directory are not shown",
+        "Select two targets",
         "Confirm",
-        "Verify skill file exists at ~/.claude/skills/[name]/SKILL.md",
-        "Verify skill file also exists at ~/.agents/skills/[name]/SKILL.md",
-        "Verify both deployment records are stored"
+        "Verify skill directory and SKILL.md exist at each selected tool path",
+        "Verify deployment records are stored for each target",
+        "Verify selecting a single target only writes to that one location"
       ],
       "passes": false,
       "notes": ""
