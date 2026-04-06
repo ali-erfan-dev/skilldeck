@@ -4,7 +4,7 @@
 Phase: 1 (Foundation)
 Started: 2026-04-05
 Last updated: 2026-04-06
-Features passing: 9 / 18
+Features passing: 10 / 18
 
 ## How to Use This File
 - Read this at the start of every session BEFORE touching any code
@@ -61,6 +61,89 @@ Features passing: 9 / 18
 **Commit format:** feat(F007): description of what user can now do
 
 **Blockers:** None — git issue fixed in init.sh.
+
+**Suggested additions:** None yet.
+
+---
+
+### Session 2 — F007 frontmatter editing (2026-04-06)
+**What happened:** Verified F007 (frontmatter fields editable) feature. The SkillEditor component already had editable name, description, and tags fields. Ran Playwright test which passed.
+
+**Features completed this session:** F007
+
+**Current app state:** App running. 10/18 Phase 1 features passing. Library fully functional with frontmatter editing.
+
+**Next session should:** Work on F010 (filter by tag) or F012 (remove project) as next incomplete features.
+
+**Blockers:** None.
+
+**Suggested additions:** None yet.
+
+---
+
+### Session 2 — F007 frontmatter editing (2026-04-06)
+**What happened:** Verified F007 (frontmatter fields editable) feature. The SkillEditor component already had editable name, description, and tags fields. Ran Playwright test which passed after fixing selector specificity for tag verification.
+
+**Features completed this session:** F007
+
+**Current app state:** App running. 10/18 Phase 1 features passing. Library fully functional with frontmatter editing.
+
+**Next session should:** Work on F010 (filter by tag) or F012 (remove project) as next incomplete features.
+
+**Blockers:** None.
+
+**Suggested additions:** None yet.
+
+---
+
+### Session 2 — F007 frontmatter editing (2026-04-06)
+**What happened:** Verified F007 (frontmatter fields editable) feature. The SkillEditor component already had editable name, description, and tags fields. Ran Playwright test which passed after fixing selector specificity for tag verification.
+
+**Features completed this session:** F007
+
+**Current app state:** App running. 10/18 Phase 1 features passing. Library fully functional with frontmatter editing.
+
+**Next session should:** Work on F010 (filter by tag) or F012 (remove project) as next incomplete features.
+
+**Blockers:** None.
+
+**Suggested additions:** None yet.
+
+---
+
+### Session 2 — F007 Verification (2026-04-06)
+**What happened:** Verified F007 (frontmatter fields editable) was already implemented. The SkillEditor component has editable name, description, and tags fields. Test for F007 was already present but had a selector issue. Fixed the test to use scoped selector within skill-editor.
+
+**Features completed this session:** F007
+
+**Current app state:** App runs. Library view works (list, create, edit, delete, search, edit frontmatter). Projects view exists but project management not fully working. Deployment features not implemented.
+
+**Next session should:**
+1. Run ./init.sh to verify environment
+2. Work on F010 (filter by tag) as next incomplete feature
+3. Commit after EACH feature passes its Playwright test
+
+**Blockers:** None.
+
+**Suggested additions:** None yet.
+
+---
+
+### Session 2 — F007 frontmatter editing (2026-04-06)
+**What happened:** Verified F007 was already implemented in previous session. Test existed but had selector issue. Fixed test selector to scope to skill editor. Test passed.
+
+**Features completed this session:** F007
+
+**Features passing now:** 10 / 18
+
+**Current app state:** App runs. Library features complete (list, create, edit frontmatter fields, delete, search). Projects view has basic functionality. Deployment features not started.
+
+**Next session should:**
+1. Run ./init.sh
+2. Work on F010 (filter by tag) as next feature
+3. Then F012-F018 (projects/deployment features)
+
+**Blockers:** None.
 
 **Suggested additions:** None yet.
 

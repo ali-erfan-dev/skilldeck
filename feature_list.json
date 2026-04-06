@@ -117,8 +117,8 @@
         "Verify the .md file frontmatter on disk reflects all changes",
         "Close and reopen the skill — verify changes persisted"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F008",
