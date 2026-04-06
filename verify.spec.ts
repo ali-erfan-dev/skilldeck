@@ -698,7 +698,7 @@ test('F015 - Deployment state current vs stale', async () => {
   const { app, window } = await launchApp()
 
   // Should show as Current
-  await expect(window.locator('[data-testid="status-current"], text=Current').first()).toBeVisible({ timeout: 3000 })
+  await expect(window.locator('[data-testid="status-current"]').first()).toBeVisible({ timeout: 3000 })
 
   // Now modify the library skill to make it stale
   const newContent = skillContent + '\n\n## New Section\nAdded content.'
@@ -709,7 +709,7 @@ test('F015 - Deployment state current vs stale', async () => {
   await window.click('[data-nav="library"], [data-testid="nav-library"]')
 
   // Should now show as Stale
-  await expect(window.locator('[data-testid="status-stale"], text=Stale').first()).toBeVisible({ timeout: 3000 })
+  await expect(window.locator('[data-testid="status-stale"]')).toBeVisible({ timeout: 3000 })
 
   fs.rmSync(projectDir, { recursive: true, force: true })
   await app.close()

@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useSkillStore } from '../store/skillStore'
+import { useDeploymentStore } from '../store/deploymentStore'
+import { useConfigStore } from '../store/configStore'
 import SkillEditor from '../components/SkillEditor'
 
 export default function LibraryView() {
@@ -18,11 +20,40 @@ export default function LibraryView() {
     deleteSkill,
   } = useSkillStore()
 
+  const { deployments, loadDeployments } = useDeploymentStore()
+  const { config, initializeConfig } = useConfigStore()
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [skillStatuses, setSkillStatuses] = useState<Record<string, 'current' | 'stale'>>({})
 
   useEffect(() => {
+    initializeConfig()
     loadSkills()
-  }, [loadSkills])
+    loadDeployments()
+  }, [initializeConfig, loadSkills, loadDeployments])
+
+  // Compute deployment status for each skill
+  useEffect(() => {
+    if (!config?.projects || skills.length === 0) return
+
+    const statuses: Record<string, 'current' | 'stale'> = {}
+
+    for (const skill of skills) {
+      const skillName = skill.filename.replace('.md', '')
+
+      // Check if skill is deployed to any project
+      for (const project of config.projects) {
+        const projectDeployments = deployments[project.id]
+        if (projectDeployments && projectDeployments[skillName]) {
+          const record = projectDeployments[skillName]
+          // Compare hashes - if they match, deployment is current
+          statuses[skill.filename] = record.libraryHash === skill.hash ? 'current' : 'stale'
+          break // Only need to check first deployment
+        }
+      }
+    }
+
+    setSkillStatuses(statuses)
+  }, [skills, deployments, config])
 
   // Get all unique tags from skills
   const allTags = useMemo(() => {
@@ -146,7 +177,21 @@ export default function LibraryView() {
                     : 'hover:bg-surface'
                 }`}
               >
-                <div className="font-medium text-sm text-fg truncate">{skill.name}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium text-sm text-fg truncate flex-1">{skill.name}</div>
+                  {skillStatuses[skill.filename] && (
+                    <span
+                      data-testid={`status-${skillStatuses[skill.filename]}`}
+                      className={`px-1.5 py-0.5 rounded text-xs ${
+                        skillStatuses[skill.filename] === 'current'
+                          ? 'bg-green-900/50 text-green-400'
+                          : 'bg-yellow-900/50 text-yellow-400'
+                      }`}
+                    >
+                      {skillStatuses[skill.filename] === 'current' ? 'Current' : 'Stale'}
+                    </span>
+                  )}
+                </div>
                 {skill.description && (
                   <div className="text-xs text-muted truncate mt-0.5">{skill.description}</div>
                 )}

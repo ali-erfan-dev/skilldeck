@@ -244,8 +244,8 @@
         "Re-deploy the skill",
         "Verify it returns to Current"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F016",
