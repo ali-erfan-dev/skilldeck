@@ -16,6 +16,17 @@ const DEFAULT_CONFIG = {
   projects: [],
 }
 
+interface Skill {
+  filename: string
+  name: string
+  description: string
+  tags: string[]
+  hash: string
+  content: string
+  source: string
+  sourcePath: string
+}
+
 let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
@@ -59,6 +70,83 @@ function ensureConfigExists() {
   if (!fs.existsSync(LIBRARY_PATH)) {
     fs.mkdirSync(LIBRARY_PATH, { recursive: true })
   }
+}
+
+function parseSkillFromContent(content: string, filename: string, source: string, sourcePath: string): Skill {
+  let name = filename.replace('.md', '').replace('SKILL', '')
+  let description = ''
+  let tags: string[] = []
+
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+  if (frontmatterMatch) {
+    const fm = frontmatterMatch[1]
+    const nameMatch = fm.match(/^name:\s*["']?(.+?)["']?\s*$/m)
+    const descMatch = fm.match(/^description:\s*["']?(.+?)["']?\s*$/m)
+    const tagsMatch = fm.match(/^tags:\s*\[(.+)\]\s*$/m)
+
+    if (nameMatch) name = nameMatch[1]
+    if (descMatch) description = descMatch[1]
+    if (tagsMatch) tags = tagsMatch[1].split(',').map(t => t.trim().replace(/["']/g, ''))
+  }
+
+  const hash = crypto.createHash('md5').update(content).digest('hex')
+
+  return { filename, name, description, tags, hash, content, source, sourcePath }
+}
+
+function scanDirectory(dir: string, source: string): Skill[] {
+  const results: Skill[] = []
+
+  if (!fs.existsSync(dir)) {
+    return results
+  }
+
+  try {
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'))
+    for (const filename of files) {
+      const filePath = path.join(dir, filename)
+      try {
+        const content = fs.readFileSync(filePath, 'utf8')
+        results.push(parseSkillFromContent(content, filename, source, filePath))
+      } catch (err) {
+        console.warn(`Failed to read ${filePath}:`, err)
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to scan directory ${dir}:`, err)
+  }
+
+  return results
+}
+
+function scanSkillDirs(dir: string, source: string): Skill[] {
+  const results: Skill[] = []
+
+  if (!fs.existsSync(dir)) {
+    return results
+  }
+
+  try {
+    const subdirs = fs.readdirSync(dir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name)
+
+    for (const subdir of subdirs) {
+      const skillPath = path.join(dir, subdir, 'SKILL.md')
+      if (fs.existsSync(skillPath)) {
+        try {
+          const content = fs.readFileSync(skillPath, 'utf8')
+          results.push(parseSkillFromContent(content, `${subdir}.md`, source, skillPath))
+        } catch (err) {
+          console.warn(`Failed to read ${skillPath}:`, err)
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to scan skill directories ${dir}:`, err)
+  }
+
+  return results
 }
 
 // IPC: Config
