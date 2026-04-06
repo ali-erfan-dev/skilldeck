@@ -228,8 +228,8 @@
         "Verify the skill file now exists at [project path]/[skills path]/[skill-name].md",
         "Verify deployments.json contains a record for this project + skill with deployedAt and libraryHash"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F015",

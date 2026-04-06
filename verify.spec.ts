@@ -637,15 +637,21 @@ test('F014 - Deploy skill to project', async () => {
   // Select the skill
   await window.click('[data-testid="skill-item"], [data-skill]')
 
+  // Wait for skill editor to load
+  await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+  await window.waitForTimeout(500)
+
+  // Wait for Deploy button to be visible
+  await window.waitForSelector('[data-testid="deploy-btn"]', { timeout: 3000 })
+
   // Click Deploy
-  await window.click('[data-testid="deploy-btn"], button:has-text("Deploy")')
+  await window.click('[data-testid="deploy-btn"]')
 
   // Select project from dropdown/list
   await window.click('text=Test Project')
 
-  // Confirm
-  const confirmBtn = window.locator('[data-testid="confirm-deploy"], button:has-text("Deploy"), button:has-text("Confirm")')
-  if (await confirmBtn.isVisible()) await confirmBtn.click()
+  // Confirm deployment
+  await window.click('[data-testid="confirm-deploy"]')
 
   // File exists at project path
   const deployedPath = path.join(projectDir, '.claude', 'skills', 'scope-killer.md')

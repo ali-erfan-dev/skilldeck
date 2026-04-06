@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfigStore } from '../store/configStore'
 import type { Skill } from '../types'
 
 interface SkillEditorProps {
@@ -44,8 +45,12 @@ function buildSkillContent(parsed: ParsedSkill): string {
 }
 
 export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
+  const { config } = useConfigStore()
   const [parsed, setParsed] = useState<ParsedSkill>(() => parseSkillContent(skill.content))
   const [saving, setSaving] = useState(false)
+  const [showDeployModal, setShowDeployModal] = useState(false)
+  const [deploying, setDeploying] = useState(false)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
 
   useEffect(() => {
     setParsed(parseSkillContent(skill.content))
@@ -56,6 +61,46 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
     const content = buildSkillContent(parsed)
     await window.api.writeSkill(skill.filename, content)
     setSaving(false)
+  }
+
+  const handleDeploy = async () => {
+    if (!selectedProjectId) return
+    const project = config?.projects.find(p => p.id === selectedProjectId)
+    if (!project) return
+
+    setDeploying(true)
+    try {
+      // Ensure target directory exists
+      const targetDir = `${project.path}/${project.skillsPath}`
+      await window.api.ensureDir(targetDir)
+
+      // Copy skill file to project
+      const sourcePath = `${await window.api.getConfig().then(c => c.libraryPath)}/${skill.filename}`
+      const targetPath = `${targetDir}/${skill.filename}`
+      await window.api.copyFile(sourcePath, targetPath)
+
+      // Get file hash for deployment record
+      const hash = await window.api.fileHash(sourcePath)
+
+      // Update deployments.json
+      const deployments = await window.api.getDeployments()
+      if (!deployments[project.id]) {
+        deployments[project.id] = {}
+      }
+      deployments[project.id][skill.filename.replace('.md', '')] = {
+        deployedAt: new Date().toISOString(),
+        libraryHash: hash,
+        currentHash: hash
+      }
+      await window.api.setDeployments(deployments)
+
+      setShowDeployModal(false)
+      setSelectedProjectId(null)
+    } catch (err) {
+      console.error('Deploy failed:', err)
+    } finally {
+      setDeploying(false)
+    }
   }
 
   const updateField = (field: keyof ParsedSkill, value: string | string[]) => {
@@ -83,6 +128,14 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <span className="text-sm text-muted font-mono">{skill.filename}</span>
         <div className="flex items-center gap-2">
+          <button
+            data-testid="deploy-btn"
+            onClick={() => setShowDeployModal(true)}
+            disabled={!config?.projects.length}
+            className="px-3 py-1.5 bg-border hover:bg-muted/30 disabled:opacity-50 text-fg text-sm rounded font-medium"
+          >
+            Deploy
+          </button>
           <button
             data-testid="save-btn"
             onClick={handleSave}
@@ -159,6 +212,50 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
           placeholder="Skill content in markdown..."
         />
       </div>
+
+      {/* Deploy Modal */}
+      {showDeployModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-border rounded-lg p-4 w-80">
+            <h3 className="font-medium text-fg mb-4">Deploy to Project</h3>
+            <div className="space-y-2 mb-4">
+              {config?.projects.map(project => (
+                <button
+                  key={project.id}
+                  onClick={() => setSelectedProjectId(project.id)}
+                  className={`w-full text-left px-3 py-2 rounded border ${
+                    selectedProjectId === project.id
+                      ? 'border-accent bg-accent/10'
+                      : 'border-border hover:border-muted'
+                  }`}
+                >
+                  <div className="font-medium text-fg">{project.name}</div>
+                  <div className="text-xs text-muted font-mono">{project.path}</div>
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowDeployModal(false)
+                  setSelectedProjectId(null)
+                }}
+                className="px-3 py-1.5 text-sm text-muted hover:text-fg"
+              >
+                Cancel
+              </button>
+              <button
+                data-testid="confirm-deploy"
+                onClick={handleDeploy}
+                disabled={!selectedProjectId || deploying}
+                className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim disabled:opacity-50 text-bg rounded font-medium"
+              >
+                {deploying ? 'Deploying...' : 'Deploy'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
