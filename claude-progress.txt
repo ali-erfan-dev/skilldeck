@@ -111,3 +111,18 @@ Features passing: 15 / 18
 **Suggested additions:** None yet.
 
 ---
+
+### Session 4 — Phase 1 Complete (2026-04-06)
+**What happened:** Implemented F016 (view deployed skills per project), F017 (undeploy skill), and F018 (settings - library path configurable). All 18 Phase 1 features now pass.
+
+**Features completed this session:** F016, F017, F018
+
+**Features passing now:** 18 / 18 (Phase 1 COMPLETE)
+
+**Current app state:** App fully functional. Library features complete (list, create, edit frontmatter, delete, search, tag filtering, deployment status). Projects view has add/remove/edit skills path, and shows deployed skills with status/timestamp/redeploy/undeploy. Deploy functionality works. Settings view allows configuring library path.
+
+**Blockers:** None. Phase 1 is complete.
+
+**Suggested additions:** None for Phase 1. Ready for Phase 2 (Playground feature, A/B mode, Behavioral diff).
+
+---
