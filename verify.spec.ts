@@ -1227,3 +1227,90 @@ description: "A skill to test cross-tool sync"
     try { fs.rmdirSync(path.join(homedir, '.agents', 'skills')) } catch {}
   }
 })
+
+// ─── F022: Divergence detection ──────────────────────────────────────────────
+
+test('F022: Divergence detection across tool locations', async () => {
+  cleanSkilldeck()
+
+  // Create a skill in the library
+  seedSkill('diverge-test', `---
+name: "Diverge Test Skill"
+description: "A skill for testing divergence"
+tags: []
+---
+# Original Content
+`)
+
+  // Create a tool directory and sync the skill
+  const homedir = os.homedir()
+  const claudeSkillsDir = path.join(homedir, '.claude', 'skills')
+  fs.mkdirSync(claudeSkillsDir, { recursive: true })
+
+  // Create the skill in Claude Code location
+  const claudeSkillDir = path.join(claudeSkillsDir, 'diverge-test')
+  fs.mkdirSync(claudeSkillDir, { recursive: true })
+  fs.writeFileSync(path.join(claudeSkillDir, 'SKILL.md'), `---
+name: "Diverge Test Skill"
+description: "A skill for testing divergence"
+tags: []
+---
+# Original Content
+`)
+
+  try {
+    const { app, window } = await launchApp()
+
+    // Wait for skills to load
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(500)
+
+    // Edit the skill in the library
+    await window.click('[data-testid="skill-item"]')
+    await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+
+    // Change the content in the editor
+    const textarea = window.locator('textarea')
+    await textarea.fill(`---
+name: "Diverge Test Skill"
+description: "A skill for testing divergence"
+tags: []
+---
+# Modified Content
+`)
+
+    // Save
+    await window.click('[data-testid="save-btn"]')
+    await window.waitForTimeout(500)
+
+    // Rescan to detect divergence
+    await window.click('[data-testid="scan-btn"]')
+    await window.waitForTimeout(1500)
+
+    // Verify divergence warning appears
+    const divergenceWarning = window.locator('[data-testid="divergence-warning"]')
+    expect(await divergenceWarning.count()).toBeGreaterThan(0)
+
+    // Click the warning to see diff
+    await divergenceWarning.click()
+    await window.waitForSelector('[data-testid="diff-view"]', { timeout: 3000 })
+
+    // Verify diff view shows both versions
+    const diffView = window.locator('[data-testid="diff-view"]')
+    expect(await diffView.locator('text=Modified Content').count()).toBeGreaterThan(0)
+
+    // Click "Use library version"
+    await window.click('[data-testid="use-library-version-btn"]')
+    await window.waitForTimeout(500)
+
+    // Verify divergence warning is gone
+    await window.waitForTimeout(500)
+    expect(await divergenceWarning.count()).toBe(0)
+
+    await app.close()
+  } finally {
+    // Cleanup
+    fs.rmSync(claudeSkillsDir, { recursive: true, force: true })
+    try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
+  }
+})
