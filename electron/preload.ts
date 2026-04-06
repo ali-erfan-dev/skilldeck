@@ -26,4 +26,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Dialog
   openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
+
+  // Project scanning
+  scanAll: () => ipcRenderer.invoke('scan:all'),
 })
