@@ -7,7 +7,7 @@
 # Test info
 
 - Name: verify.spec.ts >> F014 - Deploy skill to project
-- Location: verify.spec.ts:377:1
+- Location: verify.spec.ts:379:1
 
 # Error details
 

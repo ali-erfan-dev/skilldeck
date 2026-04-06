@@ -92,6 +92,7 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
             {saving ? 'Saving...' : 'Save'}
           </button>
           <button
+            data-testid="delete-btn"
             onClick={onDelete}
             className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm"
           >

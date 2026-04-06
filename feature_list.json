@@ -100,8 +100,8 @@
         "Open the file in a text editor externally",
         "Verify the file on disk matches what was typed in the app"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F007",
@@ -132,8 +132,8 @@
         "Verify skill disappears from the list",
         "Verify the .md file no longer exists on disk"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F009",

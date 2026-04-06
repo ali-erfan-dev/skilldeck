@@ -200,8 +200,9 @@ test('F004b - Library shows empty state when no skills', async () => {
   const { app, window } = await launchApp()
 
   // Empty state message should be visible
-  const emptyState = window.locator('[data-testid="empty-state"], text=No skills yet, text=Add your first skill')
+  const emptyState = window.locator('[data-testid="empty-state"]')
   await expect(emptyState).toBeVisible({ timeout: 3000 })
+  await expect(emptyState).toContainText('No skills yet')
 
   await app.close()
 })
@@ -243,24 +244,22 @@ test('F006 - Edit skill content saves to disk', async () => {
   // Click the skill to open editor
   await window.click('[data-testid="skill-item"], [data-skill]')
 
-  // Find the editor textarea/contenteditable
-  const editor = window.locator('[data-testid="skill-editor"], textarea[data-role="editor"], .skill-editor')
-  await expect(editor).toBeVisible({ timeout: 3000 })
+  // Wait for editor to be visible
+  await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+
+  // Find the textarea inside the skill editor
+  const textarea = window.locator('[data-testid="skill-editor"] textarea')
+  await expect(textarea).toBeVisible({ timeout: 3000 })
 
   // Clear and type new content
-  await editor.click({ clickCount: 3 }) // select all
-  await editor.fill('# Updated Content\n\nThis is new content.')
+  await textarea.fill('# Updated Content\n\nThis is new content.')
 
-  // Save (look for save button or auto-save)
-  const saveBtn = window.locator('[data-testid="save-btn"], button:has-text("Save")')
-  if (await saveBtn.isVisible()) {
-    await saveBtn.click()
-  } else {
-    // Auto-save — wait a moment
-    await window.waitForTimeout(1500)
-  }
+  // Save
+  const saveBtn = window.locator('[data-testid="save-btn"]')
+  await saveBtn.click()
 
   // Verify file on disk changed
+  await window.waitForTimeout(500)
   const content = fs.readFileSync(path.join(LIBRARY_DIR, 'test-skill.md'), 'utf8')
   expect(content).toContain('Updated Content')
 
@@ -275,25 +274,28 @@ test('F008 - Delete skill with confirmation', async () => {
 
   const { app, window } = await launchApp()
 
-  await window.waitForSelector('[data-testid="skill-item"], [data-skill]', { timeout: 3000 })
+  await window.waitForSelector('[data-testid="skill-item"]', { timeout: 3000 })
 
-  // Right-click or find delete button
-  const skillItem = window.locator('[data-testid="skill-item"], [data-skill]').first()
-  await skillItem.click({ button: 'right' })
+  // Click on skill to select it and show editor with delete button
+  const skillItem = window.locator('[data-testid="skill-item"]').first()
+  await skillItem.click()
 
-  // Click delete in context menu, or find delete button
-  const deleteBtn = window.locator('[data-testid="delete-skill"], button:has-text("Delete"), text=Delete')
+  // Wait for editor to show, then find and click delete button
+  await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 2000 })
+
+  // Click the Delete button in the editor
+  const deleteBtn = window.locator('[data-testid="delete-btn"]')
   await expect(deleteBtn).toBeVisible({ timeout: 2000 })
   await deleteBtn.click()
 
-  // Confirmation dialog
-  const confirmBtn = window.locator('[data-testid="confirm-delete"], button:has-text("Confirm"), button:has-text("Delete"), button:has-text("Yes")')
+  // Confirmation dialog - click the Delete button in the modal
+  const confirmBtn = window.locator('[data-testid="delete-skill"]')
   await expect(confirmBtn).toBeVisible({ timeout: 2000 })
   await confirmBtn.click()
 
   // Skill gone from list
   await window.waitForTimeout(500)
-  const skillItems = await window.locator('[data-testid="skill-item"], [data-skill]').count()
+  const skillItems = await window.locator('[data-testid="skill-item"]').count()
   expect(skillItems).toBe(0)
 
   // File deleted from disk
