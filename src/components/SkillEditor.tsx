@@ -51,6 +51,7 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   const [showDeployModal, setShowDeployModal] = useState(false)
   const [deploying, setDeploying] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [newTag, setNewTag] = useState('')
 
   useEffect(() => {
     setParsed(parseSkillContent(skill.content))
@@ -108,12 +109,12 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   }
 
   const handleTagKeydown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && e.currentTarget.value) {
-      const newTag = e.currentTarget.value.trim()
-      if (newTag && !parsed.tags.includes(newTag)) {
-        updateField('tags', [...parsed.tags, newTag])
+    if (e.key === 'Enter' && newTag.trim()) {
+      const trimmedTag = newTag.trim()
+      if (trimmedTag && !parsed.tags.includes(trimmedTag)) {
+        updateField('tags', [...parsed.tags, trimmedTag])
       }
-      e.currentTarget.value = ''
+      setNewTag('')
       e.preventDefault()
     }
   }
@@ -195,7 +196,10 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
             ))}
           </div>
           <input
+            data-testid="tag-input"
             type="text"
+            value={newTag}
+            onChange={e => setNewTag(e.target.value)}
             placeholder="Add tag and press Enter"
             onKeyDown={handleTagKeydown}
             className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none"
