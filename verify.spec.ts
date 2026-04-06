@@ -1060,3 +1060,95 @@ description: "A test skill from Agent Protocol"
     try { fs.rmdirSync(path.join(homedir, '.agents', 'skills')) } catch {}
   }
 })
+
+// ─── F020: Filter library by source ────────────────────────────────────────────
+
+test('F020: Filter library by source', async () => {
+  cleanSkilldeck()
+
+  // Create test skill directories in multiple standard locations
+  const homedir = os.homedir()
+  const testClaudeSkillDir = path.join(homedir, '.claude', 'skills', 'test-f020-claude')
+  const testCodexSkillDir = path.join(homedir, '.codex', 'skills', 'test-f020-codex')
+
+  // Create directories and skill files
+  fs.mkdirSync(testClaudeSkillDir, { recursive: true })
+  fs.mkdirSync(testCodexSkillDir, { recursive: true })
+
+  fs.writeFileSync(path.join(testClaudeSkillDir, 'SKILL.md'), `---
+name: "Claude Source Skill"
+description: "A test skill from Claude Code"
+---
+# Test Content
+`)
+
+  fs.writeFileSync(path.join(testCodexSkillDir, 'SKILL.md'), `---
+name: "Codex Source Skill"
+description: "A test skill from Codex"
+---
+# Test Content
+`)
+
+  try {
+    const { app, window } = await launchApp()
+
+    // Wait for scan to complete
+    await window.waitForSelector('[data-testid="scan-btn"]', { timeout: 5000 })
+    await window.click('[data-testid="scan-btn"]')
+    await window.waitForTimeout(2000)
+
+    // Verify source filter section exists
+    await window.waitForSelector('[data-testid="source-filters"]', { timeout: 5000 })
+
+    // Verify source filter buttons exist for detected sources
+    const claudeFilter = window.locator('[data-testid="source-filter-claude-code"]')
+    const codexFilter = window.locator('[data-testid="source-filter-codex"]')
+
+    // At least one external source should be detected
+    const claudeCount = await claudeFilter.count()
+    const codexCount = await codexFilter.count()
+    expect(claudeCount + codexCount).toBeGreaterThanOrEqual(2)
+
+    // Click Claude filter to filter to only Claude skills
+    await window.click('[data-testid="source-filter-claude-code"]')
+    await window.waitForTimeout(300)
+
+    // Verify only Claude skills are shown
+    const skillItems = window.locator('[data-testid="skill-item"]')
+    const count = await skillItems.count()
+
+    // All visible skills should have Claude badge
+    for (let i = 0; i < count; i++) {
+      const item = skillItems.nth(i)
+      const claudeBadge = item.locator('[data-testid="source-badge"]').filter({ hasText: 'Claude' })
+      const hasClaude = await claudeBadge.count()
+      expect(hasClaude).toBeGreaterThan(0)
+    }
+
+    // Click a second source filter (Codex) - should show both
+    await window.click('[data-testid="source-filter-codex"]')
+    await window.waitForTimeout(300)
+
+    // Verify skills from both sources are shown
+    const skillItems2 = window.locator('[data-testid="skill-item"]')
+    const count2 = await skillItems2.count()
+    expect(count2).toBeGreaterThanOrEqual(2)
+
+    // Click clear button to show all skills
+    await window.click('[data-testid="clear-sources-btn"]')
+    await window.waitForTimeout(300)
+
+    // Verify all skills are shown again
+    const skillItems3 = window.locator('[data-testid="skill-item"]')
+    const count3 = await skillItems3.count()
+    expect(count3).toBeGreaterThanOrEqual(2)
+
+    await app.close()
+  } finally {
+    // Cleanup test directories
+    fs.rmSync(testClaudeSkillDir, { recursive: true, force: true })
+    fs.rmSync(testCodexSkillDir, { recursive: true, force: true })
+    try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
+    try { fs.rmdirSync(path.join(homedir, '.codex', 'skills')) } catch {}
+  }
+})
