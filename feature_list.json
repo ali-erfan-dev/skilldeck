@@ -333,8 +333,8 @@
         "Verify skills from both sources are shown",
         "Clear filter — verify all skills return"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F021",

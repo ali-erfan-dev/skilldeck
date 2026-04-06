@@ -6,6 +6,7 @@ interface SkillState {
   selectedSkill: Skill | null
   searchQuery: string
   selectedTags: string[]
+  selectedSources: string[]
   loading: boolean
   scanning: boolean
   scannedSkills: Skill[]
@@ -15,6 +16,8 @@ interface SkillState {
   setSearchQuery: (query: string) => void
   toggleTag: (tag: string) => void
   clearTags: () => void
+  toggleSource: (source: string) => void
+  clearSources: () => void
   createSkill: () => Promise<Skill>
   saveSkill: (filename: string, content: string) => Promise<void>
   deleteSkill: (filename: string) => Promise<void>
@@ -53,6 +56,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   selectedSkill: null,
   searchQuery: '',
   selectedTags: [],
+  selectedSources: [],
   loading: false,
   scanning: false,
   scannedSkills: [],
@@ -119,6 +123,16 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   },
 
   clearTags: () => set({ selectedTags: [] }),
+
+  toggleSource: (source) => {
+    const { selectedSources } = get()
+    const newSources = selectedSources.includes(source)
+      ? selectedSources.filter(s => s !== source)
+      : [...selectedSources, source]
+    set({ selectedSources: newSources })
+  },
+
+  clearSources: () => set({ selectedSources: [] }),
 
   createSkill: async () => {
     const { skills } = get()

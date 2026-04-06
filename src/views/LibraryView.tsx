@@ -5,12 +5,34 @@ import { useConfigStore } from '../store/configStore'
 import SkillEditor from '../components/SkillEditor'
 import SourceBadge from '../components/SourceBadge'
 
+// Source display names for UI
+const SOURCE_LABELS: Record<string, string> = {
+  'skilldeck': 'Skilldeck',
+  'claude-code': 'Claude',
+  'claude-code-cmd': 'Claude Cmd',
+  'claude-code-system': 'Claude Sys',
+  'codex': 'Codex',
+  'codex-system': 'Codex Sys',
+  'agent-protocol': 'Agent',
+  'kiro': 'Kiro',
+  'amp': 'Amp',
+  'gemini': 'Gemini',
+}
+
+function getSourceLabel(source: string): string {
+  if (source.startsWith('project:')) {
+    return source.replace('project:', 'Project: ')
+  }
+  return SOURCE_LABELS[source] || source
+}
+
 export default function LibraryView() {
   const {
     skills,
     selectedSkill,
     searchQuery,
     selectedTags,
+    selectedSources,
     loading,
     scanning,
     loadAllSkills,
@@ -18,6 +40,8 @@ export default function LibraryView() {
     setSearchQuery,
     toggleTag,
     clearTags,
+    toggleSource,
+    clearSources,
     createSkill,
     deleteSkill,
   } = useSkillStore()
@@ -66,6 +90,17 @@ export default function LibraryView() {
     return Array.from(tagSet).sort()
   }, [skills])
 
+  // Get all unique sources from skills
+  const allSources = useMemo(() => {
+    const sourceSet = new Set<string>()
+    skills.forEach(skill => {
+      if (skill.source) {
+        sourceSet.add(skill.source)
+      }
+    })
+    return Array.from(sourceSet).sort()
+  }, [skills])
+
   const filteredSkills = skills.filter(skill => {
     // Filter by search query
     if (searchQuery) {
@@ -79,6 +114,12 @@ export default function LibraryView() {
     if (selectedTags.length > 0) {
       const hasTag = selectedTags.some(tag => skill.tags.includes(tag))
       if (!hasTag) return false
+    }
+    // Filter by selected sources (OR logic)
+    if (selectedSources.length > 0) {
+      if (!selectedSources.includes(skill.source || 'skilldeck')) {
+        return false
+      }
     }
     return true
   })
@@ -115,6 +156,40 @@ export default function LibraryView() {
             className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none"
           />
         </div>
+
+        {/* Source Filter */}
+        {allSources.length > 0 && (
+          <div className="p-3 border-b border-border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted">Filter by source</span>
+              {selectedSources.length > 0 && (
+                <button
+                  data-testid="clear-sources-btn"
+                  onClick={clearSources}
+                  className="text-xs text-accent hover:text-accent-dim"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1" data-testid="source-filters">
+              {allSources.map(source => (
+                <button
+                  key={source}
+                  data-testid={`source-filter-${source}`}
+                  onClick={() => toggleSource(source)}
+                  className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                    selectedSources.includes(source)
+                      ? 'bg-accent text-bg'
+                      : 'bg-border text-muted hover:text-fg'
+                  }`}
+                >
+                  {getSourceLabel(source)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tag Filter */}
         {allTags.length > 0 && (
