@@ -19,7 +19,8 @@
       "Bash(timeout 15 npx electron .)",
       "Bash(NODE_ENV=test timeout 10 npx electron .)",
       "Bash(ls C:/projects/personal/skilldeck/playwright.config.*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(rm:*)"
     ]
   }
 }

@@ -19,8 +19,6 @@ const DEFAULT_CONFIG = {
 let mainWindow: BrowserWindow | null = null
 
 function createWindow() {
-  const preloadPath = path.join(__dirname, 'preload.cjs')
-
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -29,7 +27,7 @@ function createWindow() {
     backgroundColor: '#0f0f0f',
     titleBarStyle: 'hiddenInset',
     webPreferences: {
-      preload: preloadPath,
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },

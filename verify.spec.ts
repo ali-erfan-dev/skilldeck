@@ -344,21 +344,25 @@ test('F011 - Register a project', async () => {
   const { app, window } = await launchApp()
 
   // Navigate to Projects
-  await window.click('[data-nav="projects"], [data-testid="nav-projects"]')
+  await window.click('[data-testid="nav-projects"]')
 
-  // Click Add Project
-  await window.click('[data-testid="add-project-btn"], button:has-text("Add Project"), button:has-text("+ Project")')
+  // Wait for projects view to be visible
+  await window.waitForSelector('[data-testid="projects-view"]', { timeout: 5000 })
+
+  // Click Add Project button
+  await window.click('[data-testid="add-project-btn"]')
+
+  // Wait for modal to appear
+  await window.waitForTimeout(500)
 
   // Fill in project name
-  const nameInput = window.locator('[data-testid="project-name-input"], input[name="projectName"], input[placeholder*="name"]')
-  await nameInput.fill('Test Project')
+  await window.fill('[data-testid="project-name-input"]', 'Test Project')
 
-  // Fill in path (type it manually — folder picker not testable)
-  const pathInput = window.locator('[data-testid="project-path-input"], input[name="projectPath"], input[placeholder*="path"]')
-  await pathInput.fill(projectDir)
+  // Fill in path
+  await window.fill('[data-testid="project-path-input"]', projectDir)
 
-  // Confirm
-  await window.click('[data-testid="confirm-add-project"], button:has-text("Add"), button:has-text("Confirm"), button:has-text("Save")')
+  // Click Add Project button in modal
+  await window.click('[data-testid="confirm-add-project"]')
 
   // Project appears in list
   await expect(window.locator('text=Test Project')).toBeVisible({ timeout: 3000 })

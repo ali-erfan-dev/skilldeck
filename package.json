@@ -1,9 +1,8 @@
 {
   "name": "skilldeck",
   "version": "0.1.0",
-  "type": "module",
   "description": "Desktop app for managing AI agent skill files",
-  "main": "dist-electron/main.cjs",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
