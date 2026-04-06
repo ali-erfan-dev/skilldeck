@@ -7,7 +7,10 @@ interface SkillState {
   searchQuery: string
   selectedTags: string[]
   loading: boolean
+  scanning: boolean
+  scannedSkills: Skill[]
   loadSkills: () => Promise<void>
+  loadAllSkills: () => Promise<void>
   selectSkill: (skill: Skill | null) => void
   setSearchQuery: (query: string) => void
   toggleTag: (tag: string) => void
@@ -51,6 +54,8 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   searchQuery: '',
   selectedTags: [],
   loading: false,
+  scanning: false,
+  scannedSkills: [],
 
   loadSkills: async () => {
     set({ loading: true })
@@ -65,6 +70,39 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     } catch (err) {
       console.error('Failed to load skills:', err)
       set({ loading: false })
+    }
+  },
+
+  loadAllSkills: async () => {
+    set({ scanning: true })
+    try {
+      if (!window.api) {
+        console.error('window.api is not available')
+        set({ scanning: false })
+        return
+      }
+
+      // Load library skills
+      const librarySkills = await window.api.listSkills()
+
+      // Scan all locations
+      const scannedSkills = await window.api.scanAll()
+
+      // Merge: library skills (with updated source) + scanned skills
+      // Library skills get 'skilldeck' source, others keep their source
+      const allSkills = [
+        ...librarySkills.map(s => ({ ...s, source: s.source || 'skilldeck' })),
+        ...scannedSkills.filter(s => s.source !== 'skilldeck')
+      ]
+
+      set({
+        skills: allSkills,
+        scannedSkills,
+        scanning: false
+      })
+    } catch (err) {
+      console.error('Failed to scan skills:', err)
+      set({ scanning: false })
     }
   },
 
