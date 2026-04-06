@@ -1,26 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)",
-      "Bash(ls C:/projects/personal/skilldeck/*.spec.ts)",
-      "Bash(npm run:*)",
-      "Bash(npx tsc:*)",
-      "Bash(grep -n \"declare global\" C:/projects/personal/skilldeck/src/**/*.tsx C:/projects/personal/skilldeck/src/**/*.ts)",
-      "Bash(pkill -f \"electron\")",
-      "Bash(pkill -f \"vite\")",
-      "Bash(npx playwright:*)",
-      "Bash(pkill -f playwright)",
-      "Bash(grep:*)",
-      "Bash(pkill -f electron)",
-      "Bash(timeout 10 npx electron .)",
-      "Bash(npx vite:*)",
-      "Bash(pkill -f node)",
-      "Bash(timeout 5 npx electron .)",
-      "Bash(timeout 15 npx electron .)",
-      "Bash(NODE_ENV=test timeout 10 npx electron .)",
-      "Bash(ls C:/projects/personal/skilldeck/playwright.config.*)",
-      "Bash(mv:*)",
-      "Bash(rm:*)"
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)"
     ]
   }
 }

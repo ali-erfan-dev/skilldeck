@@ -3,8 +3,8 @@
 ## Project Status
 Phase: 1 (Foundation)
 Started: 2026-04-05
-Last updated: 2026-04-05 (initialization)
-Features passing: 0 / 18
+Last updated: 2026-04-06
+Features passing: 9 / 18
 
 ## How to Use This File
 - Read this at the start of every session BEFORE touching any code
@@ -22,31 +22,46 @@ Features passing: 0 / 18
 - CLAUDE.md (project bible)
 - feature_list.json (18 Phase 1 features, all passing: false)
 - claude-progress.txt (this file)
-- init.ps1 or .\init.sh (dev environment startup — Windows PowerShell)
+- init.sh / init.ps1 (dev environment startup)
+- verify.spec.ts (Playwright test suite)
+- playwright.config.ts
+- reset-features.js
 
-**Current app state:** No repo exists yet. First coding session should scaffold the repo.
+**Current app state:** No repo exists yet.
+**Next session should:** Scaffold the Electron + React + TypeScript + Vite project.
+**Blockers:** None.
+
+---
+
+### Session 1 — App scaffold + Library features (2026-04-05/06)
+**What happened:** Full Electron + React + TypeScript + Vite scaffold created. Library features built. Playwright tests written and refined by agent. UI testing issues encountered — agent wrote debug-verify.spec.ts to diagnose.
+
+**Features completed this session:** F001, F002, F003, F004, F005, F006, F008, F009, F011
+
+**Features attempted but not completed:**
+- F007 (frontmatter fields editable) — not implemented yet
+- F010 (filter by tag) — not implemented yet
+- F012-F018 (projects/deployment features) — not started
+
+**IMPORTANT — Git was never initialized:** No commits were made during this session because git init was never run. The harness init.sh has been updated to auto-initialize git on first run. When you start this session, init.sh will detect the missing .git directory and initialize it automatically.
+
+**Current app state:** App runs. Library view works (list, create, edit, delete, search). Projects view exists but project management not fully working. Deployment features not implemented.
+
+**Known issues from last session:**
+- verify.spec.ts was updated by agent to use more specific selectors — use the current version on disk
+- Some features may be marked passing without full Playwright verification — trust the test results over feature_list.json
 
 **Next session should:**
-1. Run .\init.ps1 or .\init.sh to verify Node/npm environment
-2. Scaffold the Electron + React + TypeScript + Vite project
-3. Work through F001 (App launches) and F002 (Config initializes on first run)
-4. Commit with message: "feat: initial project scaffold"
+1. Run ./init.sh — this will initialize git and make the first commit
+2. Run full test suite: npx playwright test verify.spec.ts
+3. For any features that fail tests but show passes:true, reset them: node reset-features.js F00X
+4. Work on F007 (frontmatter fields editable) as next feature
+5. Commit after EACH feature passes its Playwright test — one feature, one commit
 
-**Blockers:** None.
+**Commit format:** feat(F007): description of what user can now do
+
+**Blockers:** None — git issue fixed in init.sh.
 
 **Suggested additions:** None yet.
 
 ---
-
-<!-- Template for future sessions:
-
-### Session N — [brief title] ([date])
-**What happened:** [what was built/fixed/discovered]
-**Features completed this session:** [F00X, F00Y]
-**Features attempted but not completed:** [F00Z — reason]
-**Current app state:** [does it run? what works? what's broken?]
-**Next session should:** [specific next steps]
-**Blockers:** [anything blocking progress]
-**Suggested additions:** [features not in feature_list.json worth considering]
-
--->

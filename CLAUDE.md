@@ -42,6 +42,7 @@ node -e "const fs=require('fs');const f=JSON.parse(fs.readFileSync('feature_list
 Replace `F001` with the actual feature ID. Replace the notes string as appropriate.
 7. **Run `./init.sh` at the start of every session** to ensure the environment is in a working state before building. This works in Claude Code's bash environment on Windows. For manual PowerShell use, run `.\init.ps1` instead.
 8. **If something is broken when you arrive, fix it before adding anything new.** A broken foundation makes everything built on top of it unreliable.
+9. **If a Playwright test fails 3 times in a row on the same feature, stop.** Do not try a fourth approach. Write a blocker entry in `claude-progress.txt` with: what you tried all three times, the exact error output, your root cause hypothesis. Commit whatever is working. Then stop completely — do not move to the next feature. This rule is absolute and cannot be overridden by reasoning about "just one more approach."
 
 ## Stack
 
@@ -162,3 +163,36 @@ Primary color: a single muted accent (not blue — everyone uses blue). Consider
 **Phase 3:** Deck system, Version history, Cross-agent translation.
 
 Do not build Phase 2 or 3 features during Phase 1. If the urge arises, add to "Suggested additions" in `claude-progress.txt`.
+
+## Autonomous Loop Protocol
+
+When running autonomously (no human present), follow this loop exactly:
+
+```
+LOOP:
+  1. Run ./init.sh
+  2. Read claude-progress.txt
+  3. Find next feature where passes = false in feature_list.json
+  4. If none → all Phase 1 features pass → write final session entry → STOP
+  5. Implement the feature
+  6. Run: npx playwright test verify.spec.ts --grep F00X
+  7. If test passes:
+       - Mark feature passing in feature_list.json (Node command, not string replace)
+       - Write session entry in claude-progress.txt
+       - git add . && git commit -m "feat(F00X): description"
+       - Go to LOOP
+  8. If test fails:
+       - Increment attempt counter for this feature
+       - If attempt counter < 3: fix the issue, go to step 6
+       - If attempt counter >= 3: STOP — write blocker entry in claude-progress.txt
+         explaining exactly what was tried and what the error output was
+```
+
+**The stuck rule is absolute.** Three failed attempts on one feature = stop and surface the problem. Do not try a fourth approach. Do not move to the next feature. The human needs to unblock you — attempting more variations wastes context and makes the problem harder to diagnose.
+
+**When stopping due to a blocker, the claude-progress.txt entry must include:**
+- The feature ID and name
+- All three approaches attempted (what you changed each time)
+- The exact Playwright error output from the last attempt
+- Your hypothesis about the root cause
+- What you think needs to happen to unblock it

@@ -25,6 +25,31 @@ echo "✓ Node: $(node --version)"
 # 3. Check npm
 echo "✓ npm: $(npm --version)"
 
+# 4. Check git — initialize if not already a repo
+if ! command -v git &> /dev/null; then
+  echo "ERROR: git not found. Install git before proceeding."
+  exit 1
+fi
+
+if [ ! -d ".git" ]; then
+  echo "→ No git repo found. Initializing..."
+  git init
+  git add .
+  git commit -m "harness: initialize project harness"
+  echo "✓ Git repo initialized with harness files committed"
+else
+  echo "✓ Git repo present"
+  # Show last commit so agent knows where things stand
+  echo "  Last commit: $(git log --oneline -1)"
+  # Warn if there are uncommitted changes from a previous session
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "⚠ WARNING: Uncommitted changes detected from previous session."
+    echo "  Either commit them (if a feature is complete and tested)"
+    echo "  or revert them: git checkout ."
+    echo "  Do NOT build on top of uncommitted broken code."
+  fi
+fi
+
 # 4. Only install deps if package.json exists
 if [ ! -f "package.json" ]; then
   echo "⚠ package.json not found — project not scaffolded yet."
