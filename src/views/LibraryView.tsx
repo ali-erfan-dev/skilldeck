@@ -3,6 +3,7 @@ import { useSkillStore } from '../store/skillStore'
 import { useDeploymentStore } from '../store/deploymentStore'
 import { useConfigStore } from '../store/configStore'
 import SkillEditor from '../components/SkillEditor'
+import SourceBadge from '../components/SourceBadge'
 
 export default function LibraryView() {
   const {
@@ -11,7 +12,9 @@ export default function LibraryView() {
     searchQuery,
     selectedTags,
     loading,
+    scanning,
     loadSkills,
+    loadAllSkills,
     selectSkill,
     setSearchQuery,
     toggleTag,
@@ -27,9 +30,9 @@ export default function LibraryView() {
 
   useEffect(() => {
     initializeConfig()
-    loadSkills()
+    loadAllSkills()
     loadDeployments()
-  }, [initializeConfig, loadSkills, loadDeployments])
+  }, [initializeConfig, loadAllSkills, loadDeployments])
 
   // Compute deployment status for each skill
   useEffect(() => {
@@ -148,14 +151,22 @@ export default function LibraryView() {
           </div>
         )}
 
-        {/* New Skill Button */}
-        <div className="p-3 border-b border-border">
+        {/* Buttons */}
+        <div className="p-3 border-b border-border flex gap-2">
           <button
             data-testid="new-skill-btn"
             onClick={handleNewSkill}
-            className="w-full bg-accent hover:bg-accent-dim text-bg font-medium py-1.5 rounded text-sm transition-colors"
+            className="flex-1 bg-accent hover:bg-accent-dim text-bg font-medium py-1.5 rounded text-sm transition-colors"
           >
             + New Skill
+          </button>
+          <button
+            data-testid="scan-btn"
+            onClick={loadAllSkills}
+            disabled={scanning}
+            className="px-3 py-1.5 bg-border hover:bg-surface text-fg rounded text-sm transition-colors disabled:opacity-50"
+          >
+            {scanning ? '...' : 'Scan'}
           </button>
         </div>
 
@@ -179,6 +190,7 @@ export default function LibraryView() {
               >
                 <div className="flex items-center gap-2">
                   <div className="font-medium text-sm text-fg truncate flex-1">{skill.name}</div>
+                  <SourceBadge source={skill.source} />
                   {skillStatuses[skill.filename] && (
                     <span
                       data-testid={`status-${skillStatuses[skill.filename]}`}
