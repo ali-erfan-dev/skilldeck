@@ -119,6 +119,10 @@ ipcMain.handle('library:read', (_event, filename: string) => {
 ipcMain.handle('library:write', (_event, filename: string, content: string) => {
   const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
   const libPath = config.libraryPath || LIBRARY_PATH
+  // Ensure library directory exists
+  if (!fs.existsSync(libPath)) {
+    fs.mkdirSync(libPath, { recursive: true })
+  }
   const filePath = path.join(libPath, filename)
   fs.writeFileSync(filePath, content)
   return true
