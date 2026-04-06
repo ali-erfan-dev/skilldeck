@@ -3,8 +3,10 @@ import { useConfigStore } from '../store/configStore'
 import { v4 as uuidv4 } from 'uuid'
 
 export default function ProjectsView() {
-  const { config, addProject, removeProject } = useConfigStore()
+  const { config, addProject, updateProject, removeProject } = useConfigStore()
   const [showAddModal, setShowAddModal] = useState(false)
+  const [editingProject, setEditingProject] = useState<string | null>(null)
+  const [editSkillsPath, setEditSkillsPath] = useState('')
   const [newProject, setNewProject] = useState({ name: '', path: '' })
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
@@ -57,17 +59,32 @@ export default function ProjectsView() {
               className="bg-surface border border-border rounded p-3"
             >
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex-1">
                   <div className="font-medium text-fg">{project.name}</div>
                   <div className="text-xs text-muted font-mono mt-1">{project.path}</div>
+                  <div className="text-xs text-muted mt-1">
+                    Skills path: <span className="font-mono">{project.skillsPath}</span>
+                  </div>
                 </div>
-                <button
-                  data-testid={`remove-project-btn-${project.id}`}
-                  onClick={() => setConfirmDelete(project.id)}
-                  className="text-muted hover:text-red-400 text-sm"
-                >
-                  Remove
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    data-testid={`edit-project-btn-${project.id}`}
+                    onClick={() => {
+                      setEditingProject(project.id)
+                      setEditSkillsPath(project.skillsPath)
+                    }}
+                    className="text-muted hover:text-fg text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    data-testid={`remove-project-btn-${project.id}`}
+                    onClick={() => setConfirmDelete(project.id)}
+                    className="text-muted hover:text-red-400 text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -155,6 +172,49 @@ export default function ProjectsView() {
                 className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
               >
                 Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Project Modal */}
+      {editingProject && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-border rounded-lg p-4 w-96">
+            <h3 className="font-medium text-fg mb-4">Edit Project</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-muted mb-1">Skills Path</label>
+                <input
+                  data-testid="skills-path-input"
+                  type="text"
+                  value={editSkillsPath}
+                  onChange={e => setEditSkillsPath(e.target.value)}
+                  className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg font-mono focus:border-accent focus:outline-none"
+                  placeholder=".claude/skills"
+                />
+                <p className="text-xs text-muted mt-1">
+                  The subdirectory where skill files will be deployed.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setEditingProject(null)}
+                className="px-3 py-1.5 text-sm text-muted hover:text-fg"
+              >
+                Cancel
+              </button>
+              <button
+                data-testid="confirm-edit-project"
+                onClick={async () => {
+                  await updateProject(editingProject, { skillsPath: editSkillsPath })
+                  setEditingProject(null)
+                }}
+                className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim text-bg rounded font-medium"
+              >
+                Save
               </button>
             </div>
           </div>

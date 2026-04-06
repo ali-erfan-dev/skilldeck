@@ -555,6 +555,62 @@ test('F012 - Remove a project', async () => {
   await app.close()
 })
 
+// ─── F013: Configure skills path per project ─────────────────────────────────
+
+test('F013 - Configure skills path per project', async () => {
+  cleanSkilldeck()
+
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skilldeck-test-project-'))
+  fs.mkdirSync(SKILLDECK_DIR, { recursive: true })
+
+  // Pre-seed a project in config
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{
+      id: 'test-project-1',
+      name: 'Test Project',
+      path: projectDir,
+      skillsPath: '.claude/skills'
+    }]
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+
+  const { app, window } = await launchApp()
+
+  // Navigate to Projects
+  await window.click('[data-testid="nav-projects"]')
+  await window.waitForSelector('[data-testid="projects-view"]', { timeout: 5000 })
+
+  // Wait for project to load
+  await window.waitForTimeout(500)
+
+  // Click Edit button
+  await window.click('[data-testid^="edit-project-btn-"]')
+  await window.waitForTimeout(500)
+
+  // Edit modal appears
+  await expect(window.locator('text=Edit Project')).toBeVisible({ timeout: 2000 })
+
+  // Change skills path
+  const skillsInput = window.locator('[data-testid="skills-path-input"]')
+  await skillsInput.fill('.skilldeck/skills')
+
+  // Save
+  await window.click('[data-testid="confirm-edit-project"]')
+  await window.waitForTimeout(300)
+
+  // Verify updated path shows in UI
+  await expect(window.locator('text=.skilldeck/skills')).toBeVisible({ timeout: 3000 })
+
+  // Verify config updated on disk
+  const updatedConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  expect(updatedConfig.projects[0].skillsPath).toBe('.skilldeck/skills')
+
+  // Cleanup
+  fs.rmSync(projectDir, { recursive: true, force: true })
+  await app.close()
+})
+
 // ─── F014: Deploy a skill to a project ───────────────────────────────────────
 
 test('F014 - Deploy skill to project', async () => {

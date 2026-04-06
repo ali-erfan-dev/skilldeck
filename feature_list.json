@@ -213,8 +213,8 @@
         "Save",
         "Verify config.json reflects the updated skills path for that project"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F014",

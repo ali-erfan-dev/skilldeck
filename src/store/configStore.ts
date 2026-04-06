@@ -7,6 +7,7 @@ interface ConfigState {
   initializeConfig: () => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
   addProject: (project: { id: string; name: string; path: string; skillsPath: string }) => Promise<void>
+  updateProject: (id: string, updates: { name?: string; path?: string; skillsPath?: string }) => Promise<void>
   removeProject: (id: string) => Promise<void>
 }
 
@@ -48,6 +49,15 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     const { config, updateConfig } = get()
     if (!config) return
     const projects = config.projects.filter(p => p.id !== id)
+    await updateConfig({ projects })
+  },
+
+  updateProject: async (id, updates) => {
+    const { config, updateConfig } = get()
+    if (!config) return
+    const projects = config.projects.map(p =>
+      p.id === id ? { ...p, ...updates } : p
+    )
     await updateConfig({ projects })
   },
 }))
