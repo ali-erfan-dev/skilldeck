@@ -354,8 +354,8 @@
         "Verify deployment records are stored for each target",
         "Verify selecting a single target only writes to that one location"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     },
     {
       "id": "F022",
