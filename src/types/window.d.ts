@@ -33,6 +33,9 @@ declare global {
 
       // Dialog
       openDirectory: () => Promise<string | null>
+
+      // Project scanning
+      scanAll: () => Promise<Skill[]>
     }
   }
 }

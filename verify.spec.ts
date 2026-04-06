@@ -997,3 +997,66 @@ test('Tag persists after save without app restart', async () => {
 
   await app.close()
 })
+
+// ─── F019: Scan machine for skill locations ───────────────────────────────────
+
+test('F019: Scan machine for all skill locations', async () => {
+  cleanSkilldeck()
+
+  // Create test skill directories in standard locations
+  const homedir = os.homedir()
+  const testClaudeSkillDir = path.join(homedir, '.claude', 'skills', 'test-f019-skill')
+  const testAgentSkillDir = path.join(homedir, '.agents', 'skills', 'test-f019-agent')
+
+  // Create directories and skill files
+  fs.mkdirSync(testClaudeSkillDir, { recursive: true })
+  fs.mkdirSync(testAgentSkillDir, { recursive: true })
+
+  fs.writeFileSync(path.join(testClaudeSkillDir, 'SKILL.md'), `---
+name: "Test Claude Skill"
+description: "A test skill from Claude"
+---
+# Test Content
+`)
+
+  fs.writeFileSync(path.join(testAgentSkillDir, 'SKILL.md'), `---
+name: "Test Agent Skill"
+description: "A test skill from Agent Protocol"
+---
+# Test Content
+`)
+
+  try {
+    const { app, window } = await launchApp()
+
+    // Library view is default, wait for scan button to be visible
+    await window.waitForSelector('[data-testid="scan-btn"]', { timeout: 5000 })
+
+    // Click Scan button
+    await window.click('[data-testid="scan-btn"]')
+
+    // Wait for scan to complete (scanning state goes back to false)
+    await window.waitForTimeout(2000)
+
+    // Verify source badges appear on skill items
+    await window.waitForSelector('[data-testid="source-badge"]', { timeout: 5000 })
+
+    // Verify we have at least one external skill badge (Claude or Agent)
+    const claudeBadge = window.locator('[data-testid="source-badge"]').filter({ hasText: 'Claude' })
+    const agentBadge = window.locator('[data-testid="source-badge"]').filter({ hasText: 'Agent' })
+
+    // At least one external skill should be found
+    const claudeCount = await claudeBadge.count()
+    const agentCount = await agentBadge.count()
+    expect(claudeCount + agentCount).toBeGreaterThanOrEqual(1)
+
+    await app.close()
+  } finally {
+    // Cleanup test directories
+    fs.rmSync(testClaudeSkillDir, { recursive: true, force: true })
+    fs.rmSync(testAgentSkillDir, { recursive: true, force: true })
+    // Remove parent dirs if empty
+    try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
+    try { fs.rmdirSync(path.join(homedir, '.agents', 'skills')) } catch {}
+  }
+})

@@ -13,7 +13,6 @@ export default function LibraryView() {
     selectedTags,
     loading,
     scanning,
-    loadSkills,
     loadAllSkills,
     selectSkill,
     setSearchQuery,

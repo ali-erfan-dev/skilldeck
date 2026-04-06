@@ -91,8 +91,8 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       // Merge: library skills (with updated source) + scanned skills
       // Library skills get 'skilldeck' source, others keep their source
       const allSkills = [
-        ...librarySkills.map(s => ({ ...s, source: s.source || 'skilldeck' })),
-        ...scannedSkills.filter(s => s.source !== 'skilldeck')
+        ...librarySkills.map((s: Skill) => ({ ...s, source: s.source || 'skilldeck' })),
+        ...scannedSkills.filter((s: Skill) => s.source !== 'skilldeck')
       ]
 
       set({
@@ -134,6 +134,8 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       tags: [],
       hash: '',
       content,
+      source: 'skilldeck',
+      sourcePath: ''
     }
     set({ skills: [...skills, newSkill], selectedSkill: newSkill })
     return newSkill
