@@ -5,6 +5,8 @@ export interface Skill {
   tags: string[]
   hash: string
   content: string
+  source: string  // 'skilldeck' | 'claude-code' | 'agent-protocol' | 'codex' | 'project:<name>'
+  sourcePath: string  // Full path where file was found
 }
 
 export interface Project {
