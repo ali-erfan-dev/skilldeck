@@ -1152,3 +1152,78 @@ description: "A test skill from Codex"
     try { fs.rmdirSync(path.join(homedir, '.codex', 'skills')) } catch {}
   }
 })
+
+// ─── F021: Cross-tool sync deployment ────────────────────────────────────────
+
+test('F021: Cross-tool sync — deploy to multiple tool locations', async () => {
+  cleanSkilldeck()
+
+  // Create test skill in library
+  seedSkill('sync-test-skill', `---
+name: "Sync Test Skill"
+description: "A skill to test cross-tool sync"
+---
+# Test Content
+`)
+
+  // Create two tool directories
+  const homedir = os.homedir()
+  const claudeSkillsDir = path.join(homedir, '.claude', 'skills')
+  const agentsSkillsDir = path.join(homedir, '.agents', 'skills')
+
+  // Ensure directories exist
+  fs.mkdirSync(claudeSkillsDir, { recursive: true })
+  fs.mkdirSync(agentsSkillsDir, { recursive: true })
+
+  try {
+    const { app, window } = await launchApp()
+
+    // Wait for skills to load
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+
+    // Click the skill to select it
+    await window.click('[data-testid="skill-item"]')
+    await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+
+    // Click Deploy button
+    await window.click('[data-testid="deploy-btn"]')
+    await window.waitForSelector('[data-testid="deploy-modal"]', { timeout: 3000 })
+
+    // Verify tool sync targets are shown (not just projects)
+    const toolTargets = window.locator('[data-testid="tool-target"]')
+    const toolCount = await toolTargets.count()
+    expect(toolCount).toBeGreaterThanOrEqual(2) // At least 2 tools installed
+
+    // Select two tool targets
+    const claudeTarget = window.locator('[data-testid="tool-target-claude-code"]')
+    const agentsTarget = window.locator('[data-testid="tool-target-agent-protocol"]')
+
+    if (await claudeTarget.count() > 0 && await agentsTarget.count() > 0) {
+      await claudeTarget.click()
+      await agentsTarget.click()
+
+      // Confirm sync
+      await window.click('[data-testid="confirm-sync"]')
+      await window.waitForTimeout(1000)
+
+      // Verify skill was synced to both locations
+      const claudeSkillPath = path.join(claudeSkillsDir, 'sync-test-skill', 'SKILL.md')
+      const agentsSkillPath = path.join(agentsSkillsDir, 'sync-test-skill', 'SKILL.md')
+
+      expect(fs.existsSync(claudeSkillPath)).toBe(true)
+      expect(fs.existsSync(agentsSkillPath)).toBe(true)
+
+      // Verify content matches
+      const claudeContent = fs.readFileSync(claudeSkillPath, 'utf8')
+      expect(claudeContent).toContain('Sync Test Skill')
+    }
+
+    await app.close()
+  } finally {
+    // Cleanup
+    fs.rmSync(claudeSkillsDir, { recursive: true, force: true })
+    fs.rmSync(agentsSkillsDir, { recursive: true, force: true })
+    try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
+    try { fs.rmdirSync(path.join(homedir, '.agents', 'skills')) } catch {}
+  }
+})
