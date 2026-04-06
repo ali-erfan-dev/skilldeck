@@ -293,8 +293,8 @@
         "Navigate to Library view",
         "Verify skills from the new path are shown"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright"
     }
   ]
 }

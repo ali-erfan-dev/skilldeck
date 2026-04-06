@@ -878,3 +878,67 @@ test('F017 - Undeploy a skill from a project', async () => {
   fs.rmSync(projectDir, { recursive: true, force: true })
   await app.close()
 })
+
+// ─── F018: Settings view — library path configurable ─────────────────────────────
+
+test('F018 - Settings view library path configurable', async () => {
+  cleanSkilldeck()
+
+  // Ensure skilldeck directory exists
+  fs.mkdirSync(SKILLDECK_DIR, { recursive: true })
+
+  // Create two different library directories
+  const lib1 = path.join(os.tmpdir(), 'skilldeck-lib1-' + Date.now())
+  const lib2 = path.join(os.tmpdir(), 'skilldeck-lib2-' + Date.now())
+  fs.mkdirSync(lib1, { recursive: true })
+  fs.mkdirSync(lib2, { recursive: true })
+
+  // Create skills in each library
+  fs.writeFileSync(path.join(lib1, 'skill-from-lib1.md'), makeSkillContent('Skill From Lib1', 'First library skill'))
+  fs.writeFileSync(path.join(lib2, 'skill-from-lib2.md'), makeSkillContent('Skill From Lib2', 'Second library skill'))
+
+  // Pre-seed config with lib1
+  const config = {
+    libraryPath: lib1,
+    projects: []
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify({}))
+
+  const { app, window } = await launchApp()
+
+  // Verify lib1 skill shows
+  await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+  await expect(window.locator('text=Skill From Lib1')).toBeVisible()
+
+  // Navigate to Settings
+  await window.click('[data-testid="nav-settings"]')
+  await window.waitForSelector('[data-testid="settings-view"]', { timeout: 3000 })
+
+  // Verify current library path is shown
+  const libPathInput = window.locator('[data-testid="library-path-input"]')
+  await expect(libPathInput).toHaveValue(lib1)
+
+  // Change library path to lib2
+  await libPathInput.fill(lib2)
+  await window.click('[data-testid="save-settings-btn"]')
+
+  // Wait for saved indicator
+  await expect(window.locator('[data-testid="saved-indicator"]')).toBeVisible({ timeout: 3000 })
+
+  // Navigate to Library
+  await window.click('[data-testid="nav-library"]')
+  await window.waitForSelector('[data-testid="library-view"]', { timeout: 3000 })
+  await window.waitForTimeout(500)
+
+  // Verify skill from lib2 shows
+  await expect(window.locator('text=Skill From Lib2')).toBeVisible({ timeout: 3000 })
+
+  // Verify skill from lib1 is not shown
+  await expect(window.locator('text=Skill From Lib1')).not.toBeVisible()
+
+  // Cleanup
+  fs.rmSync(lib1, { recursive: true, force: true })
+  fs.rmSync(lib2, { recursive: true, force: true })
+  await app.close()
+})
