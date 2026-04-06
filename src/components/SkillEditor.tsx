@@ -47,7 +47,7 @@ function buildSkillContent(parsed: ParsedSkill): string {
 
 export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   const { config } = useConfigStore()
-  const { loadSkills, selectSkill } = useSkillStore()
+  const { loadSkills } = useSkillStore()
   const [parsed, setParsed] = useState<ParsedSkill>(() => parseSkillContent(skill.content))
   const [saving, setSaving] = useState(false)
   const [showDeployModal, setShowDeployModal] = useState(false)

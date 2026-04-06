@@ -295,6 +295,81 @@
       ],
       "passes": true,
       "notes": "Verified with Playwright"
+    },
+    {
+      "id": "F019",
+      "phase": 2,
+      "category": "discovery",
+      "name": "Scan machine for all skill locations",
+      "description": "On startup and via a manual Scan button, Skilldeck scans all known skill locations on the machine and imports discovered skills into the library view with a source badge. Locations scanned: ~/.claude/skills/*/SKILL.md (Claude Code personal), ~/.claude/commands/*.md (Claude Code commands), ~/.agents/skills/*/SKILL.md (Agent Protocol standard), ~/.codex/skills/*/SKILL.md (Codex), ~/.skilldeck/library/*.md (Skilldeck own library), and .claude/skills/ inside any registered project. Skills found outside ~/.skilldeck/library/ are shown as discovered but not copied — source badge indicates origin.",
+      "steps": [
+        "Open Skilldeck with skills present in ~/.claude/skills/",
+        "Verify those skills appear in the library with a 'claude-code' source badge",
+        "Add a skill to ~/.agents/skills/",
+        "Click Scan button",
+        "Verify the new skill appears with 'agent-protocol' source badge",
+        "Verify skills from ~/.skilldeck/library/ show 'skilldeck' badge",
+        "Verify registered project skills show 'project:[name]' badge",
+        "Verify no duplicates appear when the same skill name exists in multiple locations"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F020",
+      "phase": 2,
+      "category": "discovery",
+      "name": "Filter library by source",
+      "description": "Library view has a source filter showing all detected sources (claude-code, codex, agent-protocol, skilldeck, project names). Clicking a source filters the list to skills from that origin. Multiple sources can be selected. Skill cards display their source badge prominently.",
+      "steps": [
+        "Have skills from at least 2 different sources present",
+        "Open Library view",
+        "Verify each skill card shows a source badge",
+        "Click 'claude-code' in the source filter",
+        "Verify only Claude Code skills are shown",
+        "Click a second source",
+        "Verify skills from both sources are shown",
+        "Clear filter — verify all skills return"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F021",
+      "phase": 2,
+      "category": "discovery",
+      "name": "Cross-tool sync — deploy to multiple tool locations",
+      "description": "When deploying a skill from the Skilldeck library, the user can choose to sync it to multiple tool locations simultaneously: ~/.claude/skills/ (Claude Code), ~/.agents/skills/ (Agent Protocol / Codex), or both. This resolves the known path mismatch where npx skill install writes to ~/.agents/skills/ but Claude Code reads from ~/.claude/skills/.",
+      "steps": [
+        "Select a skill in the library",
+        "Click Deploy",
+        "Verify sync target options are shown: Claude Code, Codex/Agent Protocol, Both",
+        "Select Both",
+        "Confirm",
+        "Verify skill file exists at ~/.claude/skills/[name]/SKILL.md",
+        "Verify skill file also exists at ~/.agents/skills/[name]/SKILL.md",
+        "Verify both deployment records are stored"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F022",
+      "phase": 2,
+      "category": "discovery",
+      "name": "Divergence detection across tool locations",
+      "description": "When the same skill exists in multiple locations (e.g. ~/.claude/skills/ and ~/.skilldeck/library/), Skilldeck detects if the content has diverged and shows a warning. User can view a diff between the versions and choose which version to promote as canonical.",
+      "steps": [
+        "Deploy a skill to Claude Code location",
+        "Edit the skill in the Skilldeck library",
+        "Verify the skill card shows a divergence warning",
+        "Click the warning to see a diff view",
+        "Verify diff shows what changed between the two versions",
+        "Click 'Use library version' — verify Claude Code location is updated",
+        "Verify divergence warning disappears"
+      ],
+      "passes": false,
+      "notes": ""
     }
   ]
 }

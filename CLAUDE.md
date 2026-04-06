@@ -196,3 +196,12 @@ LOOP:
 - The exact Playwright error output from the last attempt
 - Your hypothesis about the root cause
 - What you think needs to happen to unblock it
+
+### Phase 2 Testing Rule
+
+For Phase 2 features, write the Playwright test in `verify.spec.ts` before implementing the feature. The test must fail first (red), then pass after implementation (green). Never mark a Phase 2 feature passing without this red-green cycle documented in the commit history.
+
+Commit sequence for every Phase 2 feature:
+1. `git commit -m "test(F019): add failing test for machine skill scan"`
+2. Implement the feature
+3. `git commit -m "feat(F019): implement machine skill scan — test now green"`
