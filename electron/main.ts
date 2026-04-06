@@ -281,6 +281,44 @@ ipcMain.handle('dir:ensure', (_event, dirPath: string) => {
   return true
 })
 
+// IPC: Scan all skill locations
+ipcMain.handle('scan:all', () => {
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  const homedir = app.getPath('home')
+  const results: Skill[] = []
+
+  // 1. Skilldeck library
+  const libPath = config.libraryPath || LIBRARY_PATH
+  results.push(...scanDirectory(libPath, 'skilldeck'))
+
+  // 2. Claude Code skills (~/.claude/skills/*/SKILL.md)
+  const claudeSkillsDir = path.join(homedir, '.claude', 'skills')
+  results.push(...scanSkillDirs(claudeSkillsDir, 'claude-code'))
+
+  // 3. Claude Code commands (~/.claude/commands/*.md)
+  const claudeCommandsDir = path.join(homedir, '.claude', 'commands')
+  results.push(...scanDirectory(claudeCommandsDir, 'claude-code'))
+
+  // 4. Agent Protocol (~/.agents/skills/*/SKILL.md)
+  const agentsDir = path.join(homedir, '.agents', 'skills')
+  results.push(...scanSkillDirs(agentsDir, 'agent-protocol'))
+
+  // 5. Codex (~/.codex/skills/*/SKILL.md)
+  const codexDir = path.join(homedir, '.codex', 'skills')
+  results.push(...scanSkillDirs(codexDir, 'codex'))
+
+  // 6. Registered projects
+  if (config.projects) {
+    for (const project of config.projects) {
+      const projectPath = path.join(project.path, project.skillsPath)
+      results.push(...scanDirectory(projectPath, `project:${project.name}`))
+    }
+  }
+
+  return results
+})
+
 app.whenReady().then(() => {
   ensureConfigExists()
   createWindow()
