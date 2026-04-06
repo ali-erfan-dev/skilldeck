@@ -29,4 +29,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // Project scanning
   scanAll: () => ipcRenderer.invoke('scan:all'),
+
+  // Tool sync
+  detectTools: () => ipcRenderer.invoke('tools:detect'),
+  syncToTools: (skillName: string, content: string, toolIds: string[]) => ipcRenderer.invoke('tools:sync', skillName, content, toolIds),
 })

@@ -15,6 +15,12 @@ interface ParsedSkill {
   body: string
 }
 
+interface ToolTarget {
+  id: string
+  name: string
+  path: string
+}
+
 function parseSkillContent(content: string): ParsedSkill {
   let name = 'Untitled'
   let description = ''
@@ -53,7 +59,21 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   const [showDeployModal, setShowDeployModal] = useState(false)
   const [deploying, setDeploying] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [selectedTools, setSelectedTools] = useState<string[]>([])
+  const [toolTargets, setToolTargets] = useState<ToolTarget[]>([])
   const [newTag, setNewTag] = useState('')
+
+  // Detect available tools when modal opens
+  useEffect(() => {
+    if (showDeployModal && window.api.detectTools) {
+      window.api.detectTools().then(tools => {
+        setToolTargets(tools)
+      }).catch(err => {
+        console.error('Failed to detect tools:', err)
+        setToolTargets([])
+      })
+    }
+  }, [showDeployModal])
 
   useEffect(() => {
     setParsed(parseSkillContent(skill.content))
@@ -70,43 +90,59 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   }
 
   const handleDeploy = async () => {
-    if (!selectedProjectId) return
-    const project = config?.projects.find(p => p.id === selectedProjectId)
-    if (!project) return
+    if (!selectedProjectId && selectedTools.length === 0) return
 
     setDeploying(true)
     try {
-      // Ensure target directory exists
-      const targetDir = `${project.path}/${project.skillsPath}`
-      await window.api.ensureDir(targetDir)
+      const skillName = skill.filename.replace('.md', '')
+      const content = skill.content
 
-      // Copy skill file to project
-      const sourcePath = `${await window.api.getConfig().then(c => c.libraryPath)}/${skill.filename}`
-      const targetPath = `${targetDir}/${skill.filename}`
-      await window.api.copyFile(sourcePath, targetPath)
+      // Deploy to project if selected
+      if (selectedProjectId) {
+        const project = config?.projects.find(p => p.id === selectedProjectId)
+        if (project) {
+          const targetDir = `${project.path}/${project.skillsPath}`
+          await window.api.ensureDir(targetDir)
 
-      // Get file hash for deployment record
-      const hash = await window.api.fileHash(sourcePath)
+          const sourcePath = `${await window.api.getConfig().then(c => c.libraryPath)}/${skill.filename}`
+          const targetPath = `${targetDir}/${skill.filename}`
+          await window.api.copyFile(sourcePath, targetPath)
 
-      // Update deployments.json
-      const deployments = await window.api.getDeployments()
-      if (!deployments[project.id]) {
-        deployments[project.id] = {}
+          const hash = await window.api.fileHash(sourcePath)
+          const deployments = await window.api.getDeployments()
+          if (!deployments[project.id]) {
+            deployments[project.id] = {}
+          }
+          deployments[project.id][skillName] = {
+            deployedAt: new Date().toISOString(),
+            libraryHash: hash,
+            currentHash: hash
+          }
+          await window.api.setDeployments(deployments)
+        }
       }
-      deployments[project.id][skill.filename.replace('.md', '')] = {
-        deployedAt: new Date().toISOString(),
-        libraryHash: hash,
-        currentHash: hash
+
+      // Sync to tool directories if selected
+      if (selectedTools.length > 0 && window.api.syncToTools) {
+        await window.api.syncToTools(skillName, content, selectedTools)
       }
-      await window.api.setDeployments(deployments)
 
       setShowDeployModal(false)
       setSelectedProjectId(null)
+      setSelectedTools([])
     } catch (err) {
       console.error('Deploy failed:', err)
     } finally {
       setDeploying(false)
     }
+  }
+
+  const toggleTool = (toolId: string) => {
+    setSelectedTools(prev =>
+      prev.includes(toolId)
+        ? prev.filter(t => t !== toolId)
+        : [...prev, toolId]
+    )
   }
 
   const updateField = (field: keyof ParsedSkill, value: string | string[]) => {
@@ -137,8 +173,7 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
           <button
             data-testid="deploy-btn"
             onClick={() => setShowDeployModal(true)}
-            disabled={!config?.projects.length}
-            className="px-3 py-1.5 bg-border hover:bg-muted/30 disabled:opacity-50 text-fg text-sm rounded font-medium"
+            className="px-3 py-1.5 bg-border hover:bg-muted/30 text-fg text-sm rounded font-medium"
           >
             Deploy
           </button>
@@ -224,39 +259,92 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
 
       {/* Deploy Modal */}
       {showDeployModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface border border-border rounded-lg p-4 w-80">
-            <h3 className="font-medium text-fg mb-4">Deploy to Project</h3>
-            <div className="space-y-2 mb-4">
-              {config?.projects.map(project => (
-                <button
-                  key={project.id}
-                  onClick={() => setSelectedProjectId(project.id)}
-                  className={`w-full text-left px-3 py-2 rounded border ${
-                    selectedProjectId === project.id
-                      ? 'border-accent bg-accent/10'
-                      : 'border-border hover:border-muted'
-                  }`}
-                >
-                  <div className="font-medium text-fg">{project.name}</div>
-                  <div className="text-xs text-muted font-mono">{project.path}</div>
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-end gap-2">
+        <div data-testid="deploy-modal" className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-border rounded-lg p-4 w-96 max-h-[80vh] overflow-y-auto">
+            <h3 className="font-medium text-fg mb-4">Deploy Skill</h3>
+
+            {/* Tool Sync Targets */}
+            {toolTargets.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm text-muted mb-2">Sync to Tools</h4>
+                <div data-testid="sync-targets" className="space-y-1">
+                  {toolTargets.map(tool => (
+                    <button
+                      key={tool.id}
+                      data-testid="tool-target"
+                      onClick={() => toggleTool(tool.id)}
+                      className={`w-full text-left px-3 py-2 rounded border ${
+                        selectedTools.includes(tool.id)
+                          ? 'border-accent bg-accent/10'
+                          : 'border-border hover:border-muted'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                          selectedTools.includes(tool.id)
+                            ? 'border-accent bg-accent'
+                            : 'border-muted'
+                        }`}>
+                          {selectedTools.includes(tool.id) && (
+                            <span className="text-bg text-xs">✓</span>
+                          )}
+                        </div>
+                        <div>
+                          <div data-testid={`tool-target-${tool.id}`} className="font-medium text-fg text-sm">{tool.name}</div>
+                          <div className="text-xs text-muted font-mono truncate">{tool.path}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Project Deploy Targets */}
+            {config?.projects && config.projects.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm text-muted mb-2">Deploy to Project</h4>
+                <div className="space-y-1">
+                  {config.projects.map(project => (
+                    <button
+                      key={project.id}
+                      onClick={() => setSelectedProjectId(project.id)}
+                      className={`w-full text-left px-3 py-2 rounded border ${
+                        selectedProjectId === project.id
+                          ? 'border-accent bg-accent/10'
+                          : 'border-border hover:border-muted'
+                      }`}
+                    >
+                      <div className="font-medium text-fg text-sm">{project.name}</div>
+                      <div className="text-xs text-muted font-mono truncate">{project.path}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No targets available */}
+            {(!toolTargets || toolTargets.length === 0) && (!config?.projects || config.projects.length === 0) && (
+              <p className="text-sm text-muted mb-4">
+                No tools or projects detected. Install tools or register projects to deploy skills.
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <button
                 onClick={() => {
                   setShowDeployModal(false)
                   setSelectedProjectId(null)
+                  setSelectedTools([])
                 }}
                 className="px-3 py-1.5 text-sm text-muted hover:text-fg"
               >
                 Cancel
               </button>
               <button
-                data-testid="confirm-deploy"
+                data-testid="confirm-sync"
                 onClick={handleDeploy}
-                disabled={!selectedProjectId || deploying}
+                disabled={(!selectedProjectId && selectedTools.length === 0) || deploying}
                 className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim disabled:opacity-50 text-bg rounded font-medium"
               >
                 {deploying ? 'Deploying...' : 'Deploy'}

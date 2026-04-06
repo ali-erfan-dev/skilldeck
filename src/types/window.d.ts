@@ -36,6 +36,10 @@ declare global {
 
       // Project scanning
       scanAll: () => Promise<Skill[]>
+
+      // Tool detection and sync
+      detectTools: () => Promise<{ id: string; name: string; path: string }[]>
+      syncToTools: (skillName: string, content: string, toolIds: string[]) => Promise<{ toolId: string; success: boolean; path: string }[]>
     }
   }
 }

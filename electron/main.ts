@@ -298,21 +298,102 @@ ipcMain.handle('scan:all', () => {
 
   // 3. Claude Code commands (~/.claude/commands/*.md)
   const claudeCommandsDir = path.join(homedir, '.claude', 'commands')
-  results.push(...scanDirectory(claudeCommandsDir, 'claude-code'))
+  results.push(...scanDirectory(claudeCommandsDir, 'claude-code-cmd'))
 
-  // 4. Agent Protocol (~/.agents/skills/*/SKILL.md)
+  // 4. Claude Code system skills (~/.claude/skills/.system/*/SKILL.md)
+  const claudeSystemDir = path.join(homedir, '.claude', 'skills', '.system')
+  results.push(...scanSkillDirs(claudeSystemDir, 'claude-code-system'))
+
+  // 5. Agent Protocol (~/.agents/skills/*/SKILL.md)
   const agentsDir = path.join(homedir, '.agents', 'skills')
   results.push(...scanSkillDirs(agentsDir, 'agent-protocol'))
 
-  // 5. Codex (~/.codex/skills/*/SKILL.md)
+  // 6. Codex (~/.codex/skills/*/SKILL.md)
   const codexDir = path.join(homedir, '.codex', 'skills')
   results.push(...scanSkillDirs(codexDir, 'codex'))
 
-  // 6. Registered projects
+  // 7. Codex system (~/.codex/skills/.system/*/SKILL.md)
+  const codexSystemDir = path.join(homedir, '.codex', 'skills', '.system')
+  results.push(...scanSkillDirs(codexSystemDir, 'codex-system'))
+
+  // 8. Kiro (~/.kiro/skills/*/SKILL.md)
+  const kiroDir = path.join(homedir, '.kiro', 'skills')
+  results.push(...scanSkillDirs(kiroDir, 'kiro'))
+
+  // 9. Amp (~/.amp/skills/*/SKILL.md)
+  const ampDir = path.join(homedir, '.amp', 'skills')
+  results.push(...scanSkillDirs(ampDir, 'amp'))
+
+  // 10. Gemini (~/.gemini/skills/*/SKILL.md)
+  const geminiDir = path.join(homedir, '.gemini', 'skills')
+  results.push(...scanSkillDirs(geminiDir, 'gemini'))
+
+  // 11. Registered projects
   if (config.projects) {
     for (const project of config.projects) {
       const projectPath = path.join(project.path, project.skillsPath)
       results.push(...scanDirectory(projectPath, `project:${project.name}`))
+    }
+  }
+
+  return results
+})
+
+// IPC: Detect available tool directories
+ipcMain.handle('tools:detect', () => {
+  const homedir = app.getPath('home')
+  const tools: { id: string; name: string; path: string }[] = []
+
+  // Check each tool's skills directory
+  const toolDirs = [
+    { id: 'claude-code', name: 'Claude Code', dir: path.join(homedir, '.claude', 'skills') },
+    { id: 'codex', name: 'Codex', dir: path.join(homedir, '.codex', 'skills') },
+    { id: 'agent-protocol', name: 'Agent Protocol', dir: path.join(homedir, '.agents', 'skills') },
+    { id: 'kiro', name: 'Kiro', dir: path.join(homedir, '.kiro', 'skills') },
+    { id: 'amp', name: 'Amp', dir: path.join(homedir, '.amp', 'skills') },
+    { id: 'gemini', name: 'Gemini', dir: path.join(homedir, '.gemini', 'skills') },
+  ]
+
+  for (const tool of toolDirs) {
+    if (fs.existsSync(tool.dir)) {
+      tools.push({ id: tool.id, name: tool.name, path: tool.dir })
+    }
+  }
+
+  return tools
+})
+
+// IPC: Sync skill to tool directories
+ipcMain.handle('tools:sync', (_event, skillName: string, content: string, toolIds: string[]) => {
+  const homedir = app.getPath('home')
+  const results: { toolId: string; success: boolean; path: string }[] = []
+
+  const toolPaths: Record<string, string> = {
+    'claude-code': path.join(homedir, '.claude', 'skills'),
+    'codex': path.join(homedir, '.codex', 'skills'),
+    'agent-protocol': path.join(homedir, '.agents', 'skills'),
+    'kiro': path.join(homedir, '.kiro', 'skills'),
+    'amp': path.join(homedir, '.amp', 'skills'),
+    'gemini': path.join(homedir, '.gemini', 'skills'),
+  }
+
+  for (const toolId of toolIds) {
+    const toolDir = toolPaths[toolId]
+    if (!toolDir) continue
+
+    // Create skill directory and write SKILL.md
+    const skillDir = path.join(toolDir, skillName)
+    const skillPath = path.join(skillDir, 'SKILL.md')
+
+    try {
+      if (!fs.existsSync(skillDir)) {
+        fs.mkdirSync(skillDir, { recursive: true })
+      }
+      fs.writeFileSync(skillPath, content)
+      results.push({ toolId, success: true, path: skillPath })
+    } catch (err) {
+      console.error(`Failed to sync to ${toolId}:`, err)
+      results.push({ toolId, success: false, path: skillPath })
     }
   }
 
