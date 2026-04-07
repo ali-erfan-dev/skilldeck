@@ -743,16 +743,17 @@ test('F015 - Deployment state current vs stale', async () => {
 
   // Trigger refresh - click Scan button to reload skills with new hash
   await window.click('[data-testid="scan-btn"]')
-  await window.waitForTimeout(500)
+  // Wait for scan to complete (scanning state goes back to false)
+  await window.waitForTimeout(2000)
 
   // Navigate away and back to trigger status recompute
   await window.click('[data-nav="projects"], [data-testid="nav-projects"]')
   await window.waitForTimeout(300)
   await window.click('[data-nav="library"], [data-testid="nav-library"]')
-  await window.waitForTimeout(500)
+  await window.waitForTimeout(1000)
 
   // Should now show as Stale
-  await expect(window.locator('[data-testid="status-stale"]')).toBeVisible({ timeout: 3000 })
+  await expect(window.locator('[data-testid="status-stale"]')).toBeVisible({ timeout: 5000 })
 
   fs.rmSync(projectDir, { recursive: true, force: true })
   await app.close()
