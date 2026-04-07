@@ -9,6 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SKILLDECK_DIR = path.join(app.getPath('home'), '.skilldeck')
 const CONFIG_PATH = path.join(SKILLDECK_DIR, 'config.json')
 const DEPLOYMENTS_PATH = path.join(SKILLDECK_DIR, 'deployments.json')
+const SYNC_RECORDS_PATH = path.join(SKILLDECK_DIR, 'sync-records.json')
 const LIBRARY_PATH = path.join(SKILLDECK_DIR, 'library')
 
 const DEFAULT_CONFIG = {
