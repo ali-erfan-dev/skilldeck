@@ -372,8 +372,8 @@
         "Click 'Use library version' — verify Claude Code location is updated",
         "Verify divergence warning disappears"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright - divergence detection, warning badge, diff view, and sync resolution all work"
     }
   ]
 }
