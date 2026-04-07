@@ -54,15 +54,11 @@ export default function LibraryView() {
 
   useEffect(() => {
     initializeConfig()
-    // In test mode, only load library skills (not external scans)
-    // This allows Phase 1 tests to run without interference from external skills
-    if (process.env.NODE_ENV === 'test') {
-      loadSkills()
-    } else {
-      loadAllSkills()
-    }
+    // Always load library skills on startup
+    // External skills are only loaded when user explicitly clicks "Scan"
+    loadSkills()
     loadDeployments()
-  }, [initializeConfig, loadSkills, loadAllSkills, loadDeployments])
+  }, [initializeConfig, loadSkills, loadDeployments])
 
   // Compute deployment status for each skill
   useEffect(() => {

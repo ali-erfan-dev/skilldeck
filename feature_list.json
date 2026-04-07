@@ -245,7 +245,7 @@
         "Verify it returns to Current"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright - fixed process.env.NODE_ENV issue in Vite renderer"
     },
     {
       "id": "F016",
