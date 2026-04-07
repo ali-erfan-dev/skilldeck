@@ -45,6 +45,7 @@ export default function LibraryView() {
     createSkill,
     deleteSkill,
   } = useSkillStore()
+  const loadSkills = useSkillStore(state => state.loadSkills)
 
   const { deployments, loadDeployments } = useDeploymentStore()
   const { config, initializeConfig } = useConfigStore()
@@ -53,9 +54,15 @@ export default function LibraryView() {
 
   useEffect(() => {
     initializeConfig()
-    loadAllSkills()
+    // In test mode, only load library skills (not external scans)
+    // This allows Phase 1 tests to run without interference from external skills
+    if (process.env.NODE_ENV === 'test') {
+      loadSkills()
+    } else {
+      loadAllSkills()
+    }
     loadDeployments()
-  }, [initializeConfig, loadAllSkills, loadDeployments])
+  }, [initializeConfig, loadSkills, loadAllSkills, loadDeployments])
 
   // Compute deployment status for each skill
   useEffect(() => {

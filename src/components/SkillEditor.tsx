@@ -309,6 +309,7 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
                   {config.projects.map(project => (
                     <button
                       key={project.id}
+                      data-testid={`project-${project.id}`}
                       onClick={() => setSelectedProjectId(project.id)}
                       className={`w-full text-left px-3 py-2 rounded border ${
                         selectedProjectId === project.id
