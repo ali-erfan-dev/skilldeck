@@ -29,7 +29,7 @@ function parseFrontmatter(content: string): { name: string; description: string;
   let tags: string[] = []
   let body = content
 
-  const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)?$/)
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)?$/)
   if (fmMatch) {
     const fm = fmMatch[1]
     body = fmMatch[2] || ''

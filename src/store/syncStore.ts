@@ -18,7 +18,7 @@ interface SyncState {
   getSyncRecords: (skillName: string) => SyncRecord[]
 }
 
-const SYNC_RECORDS_PATH = '.skilldeck/sync-records.json'
+// const _SYNC_RECORDS_PATH = '.skilldeck/sync-records.json' // TODO: use for F022 // TODO: use for F022
 
 export const useSyncStore = create<SyncState>((set, get) => ({
   syncRecords: {},

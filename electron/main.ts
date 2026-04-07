@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SKILLDECK_DIR = path.join(app.getPath('home'), '.skilldeck')
 const CONFIG_PATH = path.join(SKILLDECK_DIR, 'config.json')
 const DEPLOYMENTS_PATH = path.join(SKILLDECK_DIR, 'deployments.json')
-const SYNC_RECORDS_PATH = path.join(SKILLDECK_DIR, 'sync-records.json')
+// const SYNC_RECORDS_PATH = path.join(SKILLDECK_DIR, 'sync-records.json') // TODO: use for F022
 const LIBRARY_PATH = path.join(SKILLDECK_DIR, 'library')
 
 const DEFAULT_CONFIG = {
@@ -78,7 +78,7 @@ function parseSkillFromContent(content: string, filename: string, source: string
   let description = ''
   let tags: string[] = []
 
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
   if (frontmatterMatch) {
     const fm = frontmatterMatch[1]
     const nameMatch = fm.match(/^name:\s*["']?(.+?)["']?\s*$/m)
@@ -182,7 +182,7 @@ ipcMain.handle('library:list', () => {
     let description = ''
     let tags: string[] = []
 
-    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+    const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
     if (frontmatterMatch) {
       const fm = frontmatterMatch[1]
       const nameMatch = fm.match(/^name:\s*["']?(.+?)["']?\s*$/m)
