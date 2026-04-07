@@ -1,10 +1,10 @@
 # Skilldeck — Agent Progress Log
 
 ## Project Status
-Phase: 1 (Foundation)
+Phase: 2 (Discovery features)
 Started: 2026-04-05
 Last updated: 2026-04-06
-Features passing: 15 / 18
+Features passing: 20 / 22 (F019, F020, F021 complete; F022 in progress)
 
 ## How to Use This File
 - Read this at the start of every session BEFORE touching any code
@@ -86,7 +86,7 @@ Features passing: 15 / 18
 
 **Blockers:** None.
 
-**Suggested additions:** None yet.
+**Suggested additions:** None.
 
 ---
 ### Session 3 — Deployment features (2026-04-06)
@@ -108,10 +108,9 @@ Features passing: 15 / 18
 
 **Blockers:** None.
 
-**Suggested additions:** None yet.
+**Suggested additions:** None.
 
 ---
-
 ### Session 4 — Phase 1 Complete (2026-04-06)
 **What happened:** Implemented F016 (view deployed skills per project), F017 (undeploy skill), and F018 (settings - library path configurable). All 18 Phase 1 features now pass.
 
@@ -125,4 +124,56 @@ Features passing: 15 / 18
 
 **Suggested additions:** None for Phase 1. Ready for Phase 2 (Playground feature, A/B mode, Behavioral diff).
 
+---
+### Session 5 — Phase 2 Discovery Features (2026-04-06)
+**What happened:** Implemented F019, F020, F021 - Phase 2 discovery features.
+
+**Features completed this session:**
+- F019: Scan machine for all skill locations - added scanAll IPC handler, SourceBadge component, source badges on skill cards
+- F020: Filter library by source - added selectedSources state, source filter UI in LibraryView
+- F021: Cross-tool sync deployment - added tools:detect and tools:sync IPC handlers, tool sync UI in SkillEditor
+
+**Features passing now:** 21 / 22
+
+**Current app state:** App scans all skill locations on startup (Claude Code, Codex, Agent Protocol, Kiro, Amp, Gemini, project directories). Source badges show skill origin. Source filter allows filtering by source. Deploy modal shows tool sync targets. Skills can be synced to multiple tool locations.
+
+**F022 status:** Test written (failing), types and syncStore created. Implementation needs:
+- Divergence detection in scan:all handler (compare hashes)
+- UI to show divergence warning on skill cards
+- Diff view component
+- Sync resolution functionality
+
+**Commit history this session:**
+- 1d17aaa feat(F019): update feature definition with expanded requirements
+- aae0236 test(F020): add failing test for source filter
+- 2bd7c27 feat(F020): implement source filter in Library view
+- ada2ad9 test(F021): add failing test for cross-tool sync
+- 77848ca feat(F021): implement cross-tool sync deployment
+- 24d8234 test(F022): add failing test for divergence detection
+- 078db68 wip(F022): add types and syncStore for divergence detection
+
+**Blockers:** None. F022 implementation in progress.
+
+**Suggested additions:** None.
+
+---
+### Session 6 — F019-F021 complete, F022 in progress (2026-04-06)
+**What happened:** Verified and committed F019, implemented F020 and F021 from scratch, started F022.
+
+**Features completed this session:**
+- F019: Verified passing, updated feature definition with expanded requirements
+- F020: Implemented source filter in LibraryView - added selectedSources state, toggleSource/clearSources actions, source filter UI with OR logic
+- F021: Implemented cross-tool sync - added tools:detect and tools:sync IPC handlers, updated SkillEditor to show tool sync targets in deploy modal, supports multiple tool selection
+
+**Features passing now:** 21 / 22
+
+**F022 status:** Red test written. Types (SyncRecord, divergentLocations) and syncStore created. SourceBadge updated to handle undefined source. Implementation needs:
+- Divergence detection: compare library skill hashes with synced locations
+- Show divergence warning badge on skill cards
+- Diff view component to show changes
+- "Use library version" button to re-sync
+
+**Blockers:** None. F022 implementation partially complete.
+
+**Suggested additions:** None.
 ---
