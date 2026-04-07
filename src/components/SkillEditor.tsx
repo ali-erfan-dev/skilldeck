@@ -27,7 +27,7 @@ function parseSkillContent(content: string): ParsedSkill {
   let tags: string[] = []
   let body = content
 
-  const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)?$/)
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)?$/)
   if (fmMatch) {
     const fm = fmMatch[1]
     body = fmMatch[2] || ''
@@ -53,7 +53,7 @@ function buildSkillContent(parsed: ParsedSkill): string {
 
 export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   const { config } = useConfigStore()
-  const { loadSkills } = useSkillStore()
+  const { loadAllSkills } = useSkillStore()
   const [parsed, setParsed] = useState<ParsedSkill>(() => parseSkillContent(skill.content))
   const [saving, setSaving] = useState(false)
   const [showDeployModal, setShowDeployModal] = useState(false)
@@ -85,7 +85,7 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
     const content = buildSkillContent(parsed)
     await window.api.writeSkill(skill.filename, content)
     // Reload skills to update sidebar
-    await loadSkills()
+    await loadAllSkills()
     setSaving(false)
   }
 
@@ -95,7 +95,8 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
     setDeploying(true)
     try {
       const skillName = skill.filename.replace('.md', '')
-      const content = skill.content
+      // Use current edited content for sync
+      const content = buildSkillContent(parsed)
 
       // Deploy to project if selected
       if (selectedProjectId) {

@@ -157,8 +157,8 @@ export const useSkillStore = create<SkillState>((set, get) => ({
 
   saveSkill: async (filename, content) => {
     await window.api.writeSkill(filename, content)
-    const { loadSkills } = get()
-    await loadSkills()
+    const { loadAllSkills } = get()
+    await loadAllSkills()
   },
 
   deleteSkill: async (filename) => {
