@@ -1240,7 +1240,15 @@ tags: []
 
     // Click "Use library version"
     await window.click('[data-testid="use-library-version-btn"]')
-    await window.waitForTimeout(500)
+    await window.waitForTimeout(1500)  // Wait for sync and reload
+
+    // Debug: check what skills are loaded after sync
+    const skillCount = await window.locator('[data-testid="skill-item"]').count()
+    console.log('After sync - skill count:', skillCount)
+
+    // Debug: check if any divergence warnings remain
+    const warningCount = await window.locator('[data-testid="divergence-warning"]').count()
+    console.log('After sync - divergence warning count:', warningCount)
 
     // Verify divergence warning is gone
     await window.waitForTimeout(500)

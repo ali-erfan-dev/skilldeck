@@ -26,6 +26,7 @@ interface Skill {
   content: string
   source: string
   sourcePath: string
+  divergentLocations?: string[]
 }
 
 let mainWindow: BrowserWindow | null = null
@@ -337,6 +338,35 @@ ipcMain.handle('scan:all', () => {
     }
   }
 
+  // Detect divergence: group skills by name and check for hash differences
+  const skillsByName: Record<string, Skill[]> = {}
+  for (const skill of results) {
+    const name = skill.filename.replace(/\.md$/, '')
+    if (!skillsByName[name]) {
+      skillsByName[name] = []
+    }
+    skillsByName[name].push(skill)
+  }
+
+  // Mark skills with divergent locations
+  for (const [_name, skills] of Object.entries(skillsByName)) {
+    if (skills.length > 1) {
+      // Get unique hashes
+      const uniqueHashes = new Set(skills.map(s => s.hash))
+      if (uniqueHashes.size > 1) {
+        // Divergence detected - mark each skill with locations that have different content
+        for (const skill of skills) {
+          const divergentLocations = skills
+            .filter(s => s.hash !== skill.hash)
+            .map(s => s.source)
+          if (divergentLocations.length > 0) {
+            skill.divergentLocations = [...new Set(divergentLocations)]
+          }
+        }
+      }
+    }
+  }
+
   return results
 })
 
@@ -366,6 +396,7 @@ ipcMain.handle('tools:detect', () => {
 
 // IPC: Sync skill to tool directories
 ipcMain.handle('tools:sync', (_event, skillName: string, content: string, toolIds: string[]) => {
+  console.log('tools:sync called - skillName:', skillName, 'toolIds:', toolIds, 'content preview:', content.substring(0, 50))
   const homedir = app.getPath('home')
   const results: { toolId: string; success: boolean; path: string }[] = []
 
@@ -380,17 +411,24 @@ ipcMain.handle('tools:sync', (_event, skillName: string, content: string, toolId
 
   for (const toolId of toolIds) {
     const toolDir = toolPaths[toolId]
-    if (!toolDir) continue
+    if (!toolDir) {
+      console.log('[tools:sync] Unknown toolId:', toolId)
+      continue
+    }
 
     // Create skill directory and write SKILL.md
     const skillDir = path.join(toolDir, skillName)
     const skillPath = path.join(skillDir, 'SKILL.md')
+
+    console.log(`[tools:sync] skillName=${skillName} toolId=${toolId} path=${skillPath}`)
+    console.log(`[tools:sync] content preview: ${content.substring(0, 50)}...`)
 
     try {
       if (!fs.existsSync(skillDir)) {
         fs.mkdirSync(skillDir, { recursive: true })
       }
       fs.writeFileSync(skillPath, content)
+      console.log('[tools:sync] Synced successfully to:', skillPath)
       results.push({ toolId, success: true, path: skillPath })
     } catch (err) {
       console.error(`Failed to sync to ${toolId}:`, err)
@@ -398,6 +436,7 @@ ipcMain.handle('tools:sync', (_event, skillName: string, content: string, toolId
     }
   }
 
+  console.log('tools:sync results:', results)
   return results
 })
 

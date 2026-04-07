@@ -4,6 +4,7 @@ import { useDeploymentStore } from '../store/deploymentStore'
 import { useConfigStore } from '../store/configStore'
 import SkillEditor from '../components/SkillEditor'
 import SourceBadge from '../components/SourceBadge'
+import type { Skill } from '../types'
 
 // Source display names for UI
 const SOURCE_LABELS: Record<string, string> = {
@@ -51,6 +52,7 @@ export default function LibraryView() {
   const { config, initializeConfig } = useConfigStore()
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [skillStatuses, setSkillStatuses] = useState<Record<string, 'current' | 'stale'>>({})
+  const [divergenceSkill, setDivergenceSkill] = useState<Skill | null>(null)
 
   useEffect(() => {
     initializeConfig()
@@ -256,7 +258,7 @@ export default function LibraryView() {
           ) : (
             filteredSkills.map(skill => (
               <div
-                key={skill.filename}
+                key={`${skill.source}-${skill.filename}`}
                 data-testid="skill-item"
                 onClick={() => selectSkill(skill)}
                 className={`px-3 py-2 cursor-pointer border-b border-border/50 ${
@@ -268,6 +270,19 @@ export default function LibraryView() {
                 <div className="flex items-center gap-2">
                   <div className="font-medium text-sm text-fg truncate flex-1">{skill.name}</div>
                   <SourceBadge source={skill.source} />
+                  {skill.divergentLocations && skill.divergentLocations.length > 0 && (
+                    <button
+                      data-testid="divergence-warning"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDivergenceSkill(skill)
+                      }}
+                      className="px-1.5 py-0.5 rounded text-xs bg-red-900/50 text-red-400 hover:bg-red-800/50"
+                      title="Content differs from other locations"
+                    >
+                      Diverges
+                    </button>
+                  )}
                   {skillStatuses[skill.filename] && (
                     <span
                       data-testid={`status-${skillStatuses[skill.filename]}`}
@@ -342,6 +357,83 @@ export default function LibraryView() {
           </div>
         </div>
       )}
+
+      {/* Divergence Modal */}
+      {divergenceSkill && (() => {
+        // Find the library version of this skill for comparison
+        const librarySkill = skills.find(s => s.source === 'skilldeck' && s.filename === divergenceSkill.filename)
+        console.log('Divergence modal - divergenceSkill:', divergenceSkill.filename, 'source:', divergenceSkill.source)
+        console.log('Divergence modal - librarySkill found:', !!librarySkill, 'content preview:', librarySkill?.content?.substring(0, 50))
+        console.log('Divergence modal - divergentLocations:', divergenceSkill.divergentLocations)
+        console.log('Divergence modal - all skills:', skills.map(s => ({ filename: s.filename, source: s.source, hash: s.hash.substring(0, 8) })))
+
+        return (
+          <div data-testid="divergence-modal" className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-surface border border-border rounded-lg p-4 w-[600px] max-h-[80vh] overflow-y-auto">
+              <h3 className="font-medium text-fg mb-2">Divergence Detected</h3>
+              <p className="text-sm text-muted mb-4">
+                <span className="text-fg font-medium">{divergenceSkill.name}</span>
+                {' '}has different content across locations.
+              </p>
+
+              {/* Library Version */}
+              <div data-testid="diff-view" className="border border-border rounded mb-3 overflow-hidden">
+                <div className="bg-border px-3 py-1.5 text-sm text-fg font-medium flex justify-between">
+                  <span>Library Version (Skilldeck)</span>
+                  {librarySkill && <span className="text-muted">Canonical</span>}
+                </div>
+                <pre className="p-3 text-xs font-mono text-fg overflow-auto max-h-32 bg-bg">
+                  {librarySkill?.content || 'Not found in library'}
+                </pre>
+              </div>
+
+              {/* Divergent Version */}
+              <div className="border border-red-900/50 rounded mb-4 overflow-hidden">
+                <div className="bg-red-900/30 px-3 py-1.5 text-sm text-red-300 font-medium flex justify-between">
+                  <span>{getSourceLabel(divergenceSkill.source)} Version</span>
+                  <span className="text-red-400">Diverges</span>
+                </div>
+                <pre className="p-3 text-xs font-mono text-fg overflow-auto max-h-32 bg-bg">
+                  {divergenceSkill.content}
+                </pre>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <button
+                  onClick={() => setDivergenceSkill(null)}
+                  className="px-3 py-1.5 text-sm text-muted hover:text-fg"
+                >
+                  Cancel
+                </button>
+                <button
+                  data-testid="use-library-version-btn"
+                  onClick={async () => {
+                    // Sync library version to divergent locations
+                    if (window.api.syncToTools && librarySkill) {
+                      const skillName = librarySkill.filename.replace('.md', '')
+                      // If the clicked skill is from an external location, sync TO that location
+                      // If the clicked skill is from the library, sync to the divergent external locations
+                      const targetLocations = divergenceSkill.source === 'skilldeck'
+                        ? (divergenceSkill.divergentLocations || []).filter(loc => loc !== 'skilldeck')
+                        : [divergenceSkill.source]
+                      console.log('Syncing skill:', skillName, 'to locations:', targetLocations)
+                      console.log('Library content preview:', librarySkill.content.substring(0, 100))
+                      if (targetLocations.length > 0) {
+                        await window.api.syncToTools(skillName, librarySkill.content, targetLocations)
+                      }
+                    }
+                    setDivergenceSkill(null)
+                    await loadAllSkills()
+                  }}
+                  className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim text-bg rounded font-medium"
+                >
+                  Use Library Version
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
