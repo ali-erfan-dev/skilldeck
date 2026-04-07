@@ -165,15 +165,11 @@ Features passing: 20 / 22 (F019, F020, F021 complete; F022 in progress)
 - F020: Implemented source filter in LibraryView - added selectedSources state, toggleSource/clearSources actions, source filter UI with OR logic
 - F021: Implemented cross-tool sync - added tools:detect and tools:sync IPC handlers, updated SkillEditor to show tool sync targets in deploy modal, supports multiple tool selection
 
-**Features passing now:** 21 / 22
+**Features passing now:** 22 / 22 (ALL PHASE 1 + PHASE 2 FEATURES COMPLETE)
 
-**F022 status:** Red test written. Types (SyncRecord, divergentLocations) and syncStore created. SourceBadge updated to handle undefined source. Implementation needs:
-- Divergence detection: compare library skill hashes with synced locations
-- Show divergence warning badge on skill cards
-- Diff view component to show changes
-- "Use library version" button to re-sync
+**F022 status:** Complete. Divergence detection implemented via hash comparison in scan:all handler. LibraryView shows divergence-warning badge. Diff view and useLibraryVersion sync action functional.
 
-**Blockers:** None. F022 implementation partially complete.
+**Commit:** a65f5f7 feat(F022): complete divergence detection feature
 
 **Suggested additions:** None.
 ---
