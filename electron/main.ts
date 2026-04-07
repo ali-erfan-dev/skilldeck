@@ -6,14 +6,14 @@ import crypto from 'crypto'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const SKILLDECK_DIR = path.join(app.getPath('home'), '.skilldeck')
-const CONFIG_PATH = path.join(SKILLDECK_DIR, 'config.json')
-const DEPLOYMENTS_PATH = path.join(SKILLDECK_DIR, 'deployments.json')
-// const SYNC_RECORDS_PATH = path.join(SKILLDECK_DIR, 'sync-records.json') // TODO: use for F022
-const LIBRARY_PATH = path.join(SKILLDECK_DIR, 'library')
+// Lazy getters — app.getPath('home') must be called after app.whenReady()
+const getSkilldeckDir = () => path.join(app.getPath('home'), '.skilldeck')
+const getConfigPath = () => path.join(getSkilldeckDir(), 'config.json')
+const getDeploymentsPath = () => path.join(getSkilldeckDir(), 'deployments.json')
+const getLibraryPath = () => path.join(getSkilldeckDir(), 'library')
 
 const DEFAULT_CONFIG = {
-  libraryPath: LIBRARY_PATH,
+  libraryPath: path.join(app.getPath('home'), '.skilldeck', 'library'),
   projects: [],
 }
 
@@ -60,17 +60,17 @@ function createWindow() {
 }
 
 function ensureConfigExists() {
-  if (!fs.existsSync(SKILLDECK_DIR)) {
-    fs.mkdirSync(SKILLDECK_DIR, { recursive: true })
+  if (!fs.existsSync(getSkilldeckDir())) {
+    fs.mkdirSync(getSkilldeckDir(), { recursive: true })
   }
-  if (!fs.existsSync(CONFIG_PATH)) {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2))
+  if (!fs.existsSync(getConfigPath())) {
+    fs.writeFileSync(getConfigPath(), JSON.stringify(DEFAULT_CONFIG, null, 2))
   }
-  if (!fs.existsSync(DEPLOYMENTS_PATH)) {
-    fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify({}, null, 2))
+  if (!fs.existsSync(getDeploymentsPath())) {
+    fs.writeFileSync(getDeploymentsPath(), JSON.stringify({}, null, 2))
   }
-  if (!fs.existsSync(LIBRARY_PATH)) {
-    fs.mkdirSync(LIBRARY_PATH, { recursive: true })
+  if (!fs.existsSync(getLibraryPath())) {
+    fs.mkdirSync(getLibraryPath(), { recursive: true })
   }
 }
 
@@ -154,19 +154,19 @@ function scanSkillDirs(dir: string, source: string): Skill[] {
 // IPC: Config
 ipcMain.handle('config:get', () => {
   ensureConfigExists()
-  return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  return JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
 })
 
 ipcMain.handle('config:set', (_event, config) => {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(getConfigPath(), JSON.stringify(config, null, 2))
   return true
 })
 
 // IPC: Library
 ipcMain.handle('library:list', () => {
   ensureConfigExists()
-  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
-  const libPath = config.libraryPath || LIBRARY_PATH
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
 
   if (!fs.existsSync(libPath)) {
     return []
@@ -200,15 +200,15 @@ ipcMain.handle('library:list', () => {
 })
 
 ipcMain.handle('library:read', (_event, filename: string) => {
-  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
-  const libPath = config.libraryPath || LIBRARY_PATH
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
   const filePath = path.join(libPath, filename)
   return fs.readFileSync(filePath, 'utf8')
 })
 
 ipcMain.handle('library:write', (_event, filename: string, content: string) => {
-  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
-  const libPath = config.libraryPath || LIBRARY_PATH
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
   // Ensure library directory exists
   if (!fs.existsSync(libPath)) {
     fs.mkdirSync(libPath, { recursive: true })
@@ -219,8 +219,8 @@ ipcMain.handle('library:write', (_event, filename: string, content: string) => {
 })
 
 ipcMain.handle('library:delete', (_event, filename: string) => {
-  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
-  const libPath = config.libraryPath || LIBRARY_PATH
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
   const filePath = path.join(libPath, filename)
   fs.unlinkSync(filePath)
   return true
@@ -229,11 +229,11 @@ ipcMain.handle('library:delete', (_event, filename: string) => {
 // IPC: Deployments
 ipcMain.handle('deployments:get', () => {
   ensureConfigExists()
-  return JSON.parse(fs.readFileSync(DEPLOYMENTS_PATH, 'utf8'))
+  return JSON.parse(fs.readFileSync(getDeploymentsPath(), 'utf8'))
 })
 
 ipcMain.handle('deployments:set', (_event, data: object) => {
-  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify(data, null, 2))
+  fs.writeFileSync(getDeploymentsPath(), JSON.stringify(data, null, 2))
   return true
 })
 
@@ -286,12 +286,12 @@ ipcMain.handle('dir:ensure', (_event, dirPath: string) => {
 // IPC: Scan all skill locations
 ipcMain.handle('scan:all', () => {
   ensureConfigExists()
-  const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
   const homedir = app.getPath('home')
   const results: Skill[] = []
 
   // 1. Skilldeck library
-  const libPath = config.libraryPath || LIBRARY_PATH
+  const libPath = config.libraryPath || getLibraryPath()
   results.push(...scanDirectory(libPath, 'skilldeck'))
 
   // 2. Claude Code skills (~/.claude/skills/*/SKILL.md)
