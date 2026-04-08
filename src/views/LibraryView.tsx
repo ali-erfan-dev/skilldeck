@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useSkillStore } from '../store/skillStore'
 import { useDeploymentStore } from '../store/deploymentStore'
 import { useConfigStore } from '../store/configStore'
+import { getProfileById } from '../types'
 import SkillEditor from '../components/SkillEditor'
 import SourceBadge from '../components/SourceBadge'
 import type { Skill } from '../types'
@@ -177,29 +178,53 @@ export default function LibraryView() {
         if (batchSelectedProjectId) {
           const project = config?.projects.find(p => p.id === batchSelectedProjectId)
           if (project) {
-            const targetDir = `${project.path}/${project.skillsPath}`
-            await window.api.ensureDir(targetDir)
+            const profileId = project.targetProfile || 'claude-code'
+            const profile = getProfileById(profileId)
 
-            let sourcePath: string
-            if (skill.source === 'skilldeck') {
-              const cfg = await window.api.getConfig()
-              sourcePath = `${cfg.libraryPath}/${skill.filename}`
+            if (profile && window.api.deployProfile) {
+              // Profile-aware deployment
+              await window.api.deployProfile(project.id, skillName, content, profileId)
+
+              const sourcePath = skill.source === 'skilldeck'
+                ? `${config!.libraryPath}/${skill.filename}`
+                : skill.sourcePath
+              const hash = await window.api.fileHash(sourcePath)
+
+              const deployments = await window.api.getDeployments()
+              if (!deployments[project.id]) deployments[project.id] = {}
+              deployments[project.id][skillName] = {
+                deployedAt: new Date().toISOString(),
+                libraryHash: hash,
+                currentHash: hash,
+                profileId
+              }
+              await window.api.setDeployments(deployments)
             } else {
-              sourcePath = skill.sourcePath
-            }
+              // Legacy fallback
+              const targetDir = `${project.path}/${project.skillsPath}`
+              await window.api.ensureDir(targetDir)
 
-            const targetPath = `${targetDir}/${skill.filename}`
-            await window.api.copyFile(sourcePath, targetPath)
+              let sourcePath: string
+              if (skill.source === 'skilldeck') {
+                const cfg = await window.api.getConfig()
+                sourcePath = `${cfg.libraryPath}/${skill.filename}`
+              } else {
+                sourcePath = skill.sourcePath
+              }
 
-            const hash = await window.api.fileHash(sourcePath)
-            const deployments = await window.api.getDeployments()
-            if (!deployments[project.id]) deployments[project.id] = {}
-            deployments[project.id][skillName] = {
-              deployedAt: new Date().toISOString(),
-              libraryHash: hash,
-              currentHash: hash
+              const targetPath = `${targetDir}/${skill.filename}`
+              await window.api.copyFile(sourcePath, targetPath)
+
+              const hash = await window.api.fileHash(sourcePath)
+              const deployments = await window.api.getDeployments()
+              if (!deployments[project.id]) deployments[project.id] = {}
+              deployments[project.id][skillName] = {
+                deployedAt: new Date().toISOString(),
+                libraryHash: hash,
+                currentHash: hash
+              }
+              await window.api.setDeployments(deployments)
             }
-            await window.api.setDeployments(deployments)
           }
         }
 

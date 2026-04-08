@@ -694,8 +694,8 @@ test('F014 - Deploy skill to project', async () => {
   // Confirm deployment
   await window.click('[data-testid="confirm-sync"]')
 
-  // File exists at project path
-  const deployedPath = path.join(projectDir, '.claude', 'skills', 'scope-killer.md')
+  // File exists at project path — claude-code profile creates <targetDir>/<skillName>/SKILL.md
+  const deployedPath = path.join(projectDir, '.claude', 'skills', 'scope-killer', 'SKILL.md')
   await window.waitForTimeout(1000)
   expect(fs.existsSync(deployedPath)).toBe(true)
 
@@ -717,10 +717,10 @@ test('F015 - Deployment state current vs stale', async () => {
   const skillContent = makeSkillContent('Scope Killer', 'Kills scope creep')
   seedSkill('scope-killer', skillContent)
 
-  // Deploy manually
-  const deployedDir = path.join(projectDir, '.claude', 'skills')
+  // Deploy manually — claude-code profile path
+  const deployedDir = path.join(projectDir, '.claude', 'skills', 'scope-killer')
   fs.mkdirSync(deployedDir, { recursive: true })
-  fs.writeFileSync(path.join(deployedDir, 'scope-killer.md'), skillContent)
+  fs.writeFileSync(path.join(deployedDir, 'SKILL.md'), skillContent)
 
   const hash = crypto.createHash('md5').update(skillContent).digest('hex')
 
@@ -763,10 +763,10 @@ test('F017 - Undeploy a skill from a project', async () => {
   const content = fs.readFileSync(path.join(LIBRARY_DIR, 'test-skill.md'), 'utf8')
   const hash = crypto.createHash('md5').update(content).digest('hex')
 
-  // Create deployed file
-  const deployedDir = path.join(projectDir, '.claude', 'skills')
+  // Create deployed file at claude-code profile path (<targetDir>/<skillName>/SKILL.md)
+  const deployedDir = path.join(projectDir, '.claude', 'skills', 'test-skill')
   fs.mkdirSync(deployedDir, { recursive: true })
-  fs.writeFileSync(path.join(deployedDir, 'test-skill.md'), content)
+  fs.writeFileSync(path.join(deployedDir, 'SKILL.md'), content)
 
   const config = {
     libraryPath: LIBRARY_DIR,
@@ -810,8 +810,8 @@ test('F017 - Undeploy a skill from a project', async () => {
   const skillItems = await window.locator('[data-testid^="deployed-skill-item-"]').count()
   expect(skillItems).toBe(0)
 
-  // Verify file deleted from project skills path
-  const deployedPath = path.join(projectDir, '.claude', 'skills', 'test-skill.md')
+  // Verify file deleted from project skills path — claude-code profile path
+  const deployedPath = path.join(projectDir, '.claude', 'skills', 'test-skill', 'SKILL.md')
   expect(fs.existsSync(deployedPath)).toBe(false)
 
   // Verify deployment record removed from deployments.json
@@ -1304,4 +1304,148 @@ test('Bulk actions — checkboxes visible, select-all, action bar at 1+', async 
   await expect(singleCount).toBeVisible({ timeout: 2000 })
 
   await app.close()
+})
+
+// ─── F025: Target Profiles ─────────────────────────────────────────────────
+
+test('F025 - Target profiles — deploy to different tool formats', async () => {
+  cleanSkilldeck()
+  seedSkill('scope-killer', makeSkillContent('Scope Killer', 'Prevents scope creep', ['scoping']))
+
+  // Create a temp project directory
+  const tmpDir = path.join(os.tmpdir(), 'skilldeck-f025-test')
+  fs.rmSync(tmpDir, { recursive: true, force: true })
+  fs.mkdirSync(tmpDir, { recursive: true })
+
+  const { app, window } = await launchApp()
+
+  try {
+    // Navigate to projects view and add a project with cursor-rules profile
+    await window.click('[data-testid="nav-projects"], [data-nav="projects"]')
+    await window.waitForTimeout(500)
+
+    await window.click('[data-testid="add-project-btn"]')
+    await window.waitForTimeout(300)
+
+    // Fill in project details
+    await window.fill('[data-testid="project-name-input"]', 'CursorTest')
+    await window.fill('[data-testid="project-path-input"]', tmpDir)
+
+    // Select cursor-rules profile
+    const profileSelect = window.locator('[data-testid="new-project-profile-select"]')
+    await profileSelect.selectOption('cursor-rules')
+
+    // Add the project
+    await window.click('[data-testid="confirm-add-project"]')
+    await window.waitForTimeout(500)
+
+    // Verify project was added with cursor-rules profile
+    const projectText = await window.textContent('[data-testid="projects-view"]')
+    expect(projectText).toContain('CursorTest')
+    expect(projectText).toContain('Cursor Rules')
+
+    // Navigate to library and deploy the skill
+    await window.click('[data-testid="nav-library"], [data-nav="library"]')
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(500)
+
+    // Click the skill to open editor
+    await window.click('[data-testid="skill-item"]')
+    await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+    await window.waitForTimeout(300)
+
+    // Open deploy modal
+    await window.click('[data-testid="deploy-btn"]')
+    await window.waitForSelector('[data-testid="deploy-modal"]', { timeout: 3000 })
+
+    // Select the CursorTest project — click the button that contains the project name
+    const projectBtn = window.locator('[data-testid="deploy-modal"] button', { hasText: 'CursorTest' })
+    await projectBtn.click()
+    await window.waitForTimeout(300)
+
+    // Confirm deploy
+    const deployBtn = window.locator('[data-testid="deploy-modal"] button:has-text("Deploy")')
+    await deployBtn.click()
+    await window.waitForTimeout(1000)
+
+    // Verify the .mdc file was created in .cursor/rules/
+    const mdcPath = path.join(tmpDir, '.cursor', 'rules', 'scope-killer.mdc')
+    expect(fs.existsSync(mdcPath)).toBe(true)
+
+    // Verify the .mdc file has proper format
+    const mdcContent = fs.readFileSync(mdcPath, 'utf8')
+    expect(mdcContent).toContain('---')
+    expect(mdcContent).toContain('description: scope-killer')
+    expect(mdcContent).toContain('Prevents scope creep')
+
+    // Now test instructions-file profile — edit project to use Windsurf
+    await window.click('[data-testid="nav-projects"], [data-nav="projects"]')
+    await window.waitForTimeout(500)
+
+    // Click Edit on the project
+    await window.locator('button:has-text("Edit")').first().click()
+    await window.waitForTimeout(300)
+
+    // Change profile to windsurf
+    const editProfileSelect = window.locator('[data-testid="target-profile-select"]')
+    await editProfileSelect.selectOption('windsurf')
+    await window.waitForTimeout(300)
+
+    // Save
+    await window.click('[data-testid="confirm-edit-project"]')
+    await window.waitForTimeout(500)
+
+    // Verify project shows Windsurf profile
+    const updatedProjectText = await window.textContent('[data-testid="projects-view"]')
+    expect(updatedProjectText).toContain('Windsurf')
+
+    // Test instructions-file deployment — deploy the skill again with windsurf profile
+    await window.click('[data-testid="nav-library"], [data-nav="library"]')
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(500)
+
+    await window.click('[data-testid="skill-item"]')
+    await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+    await window.waitForTimeout(300)
+
+    await window.click('[data-testid="deploy-btn"]')
+    await window.waitForSelector('[data-testid="deploy-modal"]', { timeout: 3000 })
+
+    // Select the project
+    const projectBtn2 = window.locator('[data-testid="deploy-modal"] button', { hasText: 'CursorTest' })
+    await projectBtn2.click()
+    await window.waitForTimeout(300)
+
+    const deployBtn2 = window.locator('[data-testid="deploy-modal"] button:has-text("Deploy")')
+    await deployBtn2.click()
+    await window.waitForTimeout(1000)
+
+    // Verify .windsurfrules was created with delimited section
+    const windsurfPath = path.join(tmpDir, '.windsurfrules')
+    expect(fs.existsSync(windsurfPath)).toBe(true)
+
+    const windsurfContent = fs.readFileSync(windsurfPath, 'utf8')
+    expect(windsurfContent).toContain('<!-- skilldeck:skill-start:scope-killer -->')
+    expect(windsurfContent).toContain('<!-- skilldeck:skill-end:scope-killer -->')
+    expect(windsurfContent).toContain('Prevents scope creep')
+
+    // Test undeploy removes only the section (not the whole file)
+    await window.click('[data-testid="nav-projects"], [data-nav="projects"]')
+    await window.waitForTimeout(500)
+
+    // Expand the project to see deployed skills
+    const projectCard = window.locator('[data-testid="projects-view"] div', { hasText: 'CursorTest' }).first()
+    await projectCard.click()
+    await window.waitForTimeout(500)
+
+    // Verify .mdc file still exists (cursor-rules deployment)
+    expect(fs.existsSync(mdcPath)).toBe(true)
+
+    await app.close()
+  } finally {
+    // Cleanup
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  }
 })

@@ -3,6 +3,7 @@ import { useConfigStore } from '../store/configStore'
 import { useDeploymentStore } from '../store/deploymentStore'
 import { useSkillStore } from '../store/skillStore'
 import { v4 as uuidv4 } from 'uuid'
+import { BUILTIN_PROFILES, getProfileById } from '../types'
 
 interface DeployedSkillInfo {
   skillName: string
@@ -17,7 +18,9 @@ export default function ProjectsView() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingProject, setEditingProject] = useState<string | null>(null)
   const [editSkillsPath, setEditSkillsPath] = useState('')
+  const [editProfile, setEditProfile] = useState('claude-code')
   const [newProject, setNewProject] = useState({ name: '', path: '' })
+  const [newProjectProfile, setNewProjectProfile] = useState('claude-code')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [deployedSkillsInfo, setDeployedSkillsInfo] = useState<Record<string, DeployedSkillInfo[]>>({})
@@ -66,22 +69,46 @@ export default function ProjectsView() {
 
     setRedeploying(skillName)
     try {
-      const targetDir = `${project.path}/${project.skillsPath}`
-      await window.api.ensureDir(targetDir)
+      const profileId = project.targetProfile || 'claude-code'
+      const profile = getProfileById(profileId)
 
-      const sourcePath = `${config!.libraryPath}/${skill.filename}`
-      const targetPath = `${targetDir}/${skill.filename}`
-      await window.api.copyFile(sourcePath, targetPath)
+      if (profile && window.api.deployProfile) {
+        // Use profile-aware deployment
+        await window.api.deployProfile(projectId, skillName, skill.content, profileId)
 
-      const hash = await window.api.fileHash(sourcePath)
+        const sourcePath = `${config!.libraryPath}/${skill.filename}`
+        const hash = await window.api.fileHash(sourcePath)
 
-      const updatedDeployments = await window.api.getDeployments()
-      updatedDeployments[projectId][skillName] = {
-        deployedAt: new Date().toISOString(),
-        libraryHash: hash,
-        currentHash: hash
+        const updatedDeployments = await window.api.getDeployments()
+        if (!updatedDeployments[projectId]) {
+          updatedDeployments[projectId] = {}
+        }
+        updatedDeployments[projectId][skillName] = {
+          deployedAt: new Date().toISOString(),
+          libraryHash: hash,
+          currentHash: hash,
+          profileId
+        }
+        await window.api.setDeployments(updatedDeployments)
+      } else {
+        // Legacy fallback
+        const targetDir = `${project.path}/${project.skillsPath}`
+        await window.api.ensureDir(targetDir)
+
+        const sourcePath = `${config!.libraryPath}/${skill.filename}`
+        const targetPath = `${targetDir}/${skill.filename}`
+        await window.api.copyFile(sourcePath, targetPath)
+
+        const hash = await window.api.fileHash(sourcePath)
+
+        const updatedDeployments = await window.api.getDeployments()
+        updatedDeployments[projectId][skillName] = {
+          deployedAt: new Date().toISOString(),
+          libraryHash: hash,
+          currentHash: hash
+        }
+        await window.api.setDeployments(updatedDeployments)
       }
-      await window.api.setDeployments(updatedDeployments)
       await loadDeployments()
     } catch (err) {
       console.error('Redeploy failed:', err)
@@ -96,9 +123,17 @@ export default function ProjectsView() {
 
     setUndeploying(skillName)
     try {
-      // Delete the deployed skill file
-      const targetPath = `${project.path}/${project.skillsPath}/${skillName}.md`
-      await window.api.deleteFile(targetPath)
+      const profileId = project.targetProfile || 'claude-code'
+      const profile = getProfileById(profileId)
+
+      if (profile && window.api.undeployProfile) {
+        // Use profile-aware undeployment
+        await window.api.undeployProfile(projectId, skillName, profileId)
+      } else {
+        // Legacy fallback
+        const targetPath = `${project.path}/${project.skillsPath}/${skillName}.md`
+        await window.api.deleteFile(targetPath)
+      }
 
       // Remove from deployments.json
       const updatedDeployments = await window.api.getDeployments()
@@ -127,13 +162,17 @@ export default function ProjectsView() {
 
   const handleAddProject = async () => {
     if (!newProject.name || !newProject.path) return
+    const profile = getProfileById(newProjectProfile)
+    const skillsPath = profile?.targetDir || '.claude/skills'
     await addProject({
       id: uuidv4(),
       name: newProject.name,
       path: newProject.path,
-      skillsPath: '.claude/skills',
+      skillsPath,
+      targetProfile: newProjectProfile,
     })
     setNewProject({ name: '', path: '' })
+    setNewProjectProfile('claude-code')
     setShowAddModal(false)
   }
 
@@ -187,7 +226,9 @@ export default function ProjectsView() {
                       <div className="font-medium text-fg">{project.name}</div>
                       <div className="text-xs text-muted font-mono mt-1">{project.path}</div>
                       <div className="text-xs text-muted mt-1">
-                        Skills path: <span className="font-mono">{project.skillsPath}</span>
+                        Profile: <span className="font-mono">{getProfileById(project.targetProfile || 'claude-code')?.name || project.targetProfile || 'Claude Code'}</span>
+                        <span className="mx-2">|</span>
+                        Path: <span className="font-mono">{project.skillsPath}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -200,6 +241,7 @@ export default function ProjectsView() {
                           e.stopPropagation()
                           setEditingProject(project.id)
                           setEditSkillsPath(project.skillsPath)
+                          setEditProfile(project.targetProfile || 'claude-code')
                         }}
                         className="text-muted hover:text-fg text-sm"
                       >
@@ -321,6 +363,23 @@ export default function ProjectsView() {
                   </button>
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm text-muted mb-1">Target Profile</label>
+                <select
+                  data-testid="new-project-profile-select"
+                  value={newProjectProfile}
+                  onChange={e => setNewProjectProfile(e.target.value)}
+                  className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none"
+                >
+                  {BUILTIN_PROFILES.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.format})</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted mt-1">
+                  Determines how skills are deployed to this project.
+                </p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
@@ -377,6 +436,26 @@ export default function ProjectsView() {
             <h3 className="font-medium text-fg mb-4">Edit Project</h3>
             <div className="space-y-3">
               <div>
+                <label className="block text-sm text-muted mb-1">Target Profile</label>
+                <select
+                  data-testid="target-profile-select"
+                  value={editProfile}
+                  onChange={e => {
+                    setEditProfile(e.target.value)
+                    const p = getProfileById(e.target.value)
+                    if (p) setEditSkillsPath(p.targetDir)
+                  }}
+                  className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none"
+                >
+                  {BUILTIN_PROFILES.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.format})</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted mt-1">
+                  How skills are deployed to this project.
+                </p>
+              </div>
+              <div>
                 <label className="block text-sm text-muted mb-1">Skills Path</label>
                 <input
                   data-testid="skills-path-input"
@@ -387,7 +466,7 @@ export default function ProjectsView() {
                   placeholder=".claude/skills"
                 />
                 <p className="text-xs text-muted mt-1">
-                  The subdirectory where skill files will be deployed.
+                  Auto-set from profile. Override if needed.
                 </p>
               </div>
             </div>
@@ -401,7 +480,7 @@ export default function ProjectsView() {
               <button
                 data-testid="confirm-edit-project"
                 onClick={async () => {
-                  await updateProject(editingProject, { skillsPath: editSkillsPath })
+                  await updateProject(editingProject, { skillsPath: editSkillsPath, targetProfile: editProfile })
                   setEditingProject(null)
                 }}
                 className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim text-bg rounded font-medium"

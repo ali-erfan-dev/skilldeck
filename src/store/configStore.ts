@@ -6,9 +6,10 @@ interface ConfigState {
   initialized: boolean
   initializeConfig: () => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
-  addProject: (project: { id: string; name: string; path: string; skillsPath: string }) => Promise<void>
-  updateProject: (id: string, updates: { name?: string; path?: string; skillsPath?: string }) => Promise<void>
+  addProject: (project: { id: string; name: string; path: string; skillsPath: string; targetProfile?: string }) => Promise<void>
+  updateProject: (id: string, updates: { name?: string; path?: string; skillsPath?: string; targetProfile?: string }) => Promise<void>
   removeProject: (id: string) => Promise<void>
+  migrateProjects: () => Promise<void>
 }
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
@@ -22,8 +23,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         set({ initialized: true })
         return
       }
-      const config = await window.api.getConfig()
-      set({ config, initialized: true })
+      // Run migration first — adds targetProfile to projects missing it
+      if (window.api.migrateConfig) {
+        const migrated = await window.api.migrateConfig()
+        set({ config: migrated, initialized: true })
+      } else {
+        const config = await window.api.getConfig()
+        set({ config, initialized: true })
+      }
     } catch (err) {
       console.error('Failed to initialize config:', err)
       set({ initialized: true })
@@ -41,7 +48,12 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   addProject: async (project) => {
     const { config, updateConfig } = get()
     if (!config) return
-    const projects = [...config.projects, project]
+    // Default targetProfile to 'claude-code' if not specified
+    const projectWithProfile = {
+      ...project,
+      targetProfile: project.targetProfile || 'claude-code',
+    }
+    const projects = [...config.projects, projectWithProfile]
     await updateConfig({ projects })
   },
 
@@ -59,5 +71,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       p.id === id ? { ...p, ...updates } : p
     )
     await updateConfig({ projects })
+  },
+
+  migrateProjects: async () => {
+    if (!window.api.migrateConfig) return
+    const migrated = await window.api.migrateConfig()
+    set({ config: migrated })
   },
 }))

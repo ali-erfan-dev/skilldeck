@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getProfileById } from '../types'
 import { useConfigStore } from '../store/configStore'
 import { useSkillStore } from '../store/skillStore'
 import type { Skill } from '../types'
@@ -98,34 +99,60 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
       // Use current edited content for sync
       const content = buildSkillContent(parsed)
 
-      // Deploy to project if selected
+      // Deploy to project if selected — use target profile
       if (selectedProjectId) {
         const project = config?.projects.find(p => p.id === selectedProjectId)
         if (project) {
-          const targetDir = `${project.path}/${project.skillsPath}`
-          await window.api.ensureDir(targetDir)
+          const profileId = project.targetProfile || 'claude-code'
+          const profile = getProfileById(profileId)
 
-          let sourcePath: string
-          if (skill.source === 'skilldeck') {
-            sourcePath = `${await window.api.getConfig().then(c => c.libraryPath)}/${skill.filename}`
+          // Use profile-aware deployment if available
+          if (profile && window.api.deployProfile) {
+            await window.api.deployProfile(project.id, skillName, content, profileId)
+
+            const sourcePath = skill.source === 'skilldeck'
+              ? `${config!.libraryPath}/${skill.filename}`
+              : skill.sourcePath
+            const hash = await window.api.fileHash(sourcePath)
+
+            const deployments = await window.api.getDeployments()
+            if (!deployments[project.id]) {
+              deployments[project.id] = {}
+            }
+            deployments[project.id][skillName] = {
+              deployedAt: new Date().toISOString(),
+              libraryHash: hash,
+              currentHash: hash,
+              profileId
+            }
+            await window.api.setDeployments(deployments)
           } else {
-            sourcePath = skill.sourcePath
-          }
+            // Fallback to legacy deployment (copy file)
+            const targetDir = `${project.path}/${project.skillsPath}`
+            await window.api.ensureDir(targetDir)
 
-          const targetPath = `${targetDir}/${skill.filename}`
-          await window.api.copyFile(sourcePath, targetPath)
+            let sourcePath: string
+            if (skill.source === 'skilldeck') {
+              sourcePath = `${config!.libraryPath}/${skill.filename}`
+            } else {
+              sourcePath = skill.sourcePath
+            }
 
-          const hash = await window.api.fileHash(sourcePath)
-          const deployments = await window.api.getDeployments()
-          if (!deployments[project.id]) {
-            deployments[project.id] = {}
+            const targetPath = `${targetDir}/${skill.filename}`
+            await window.api.copyFile(sourcePath, targetPath)
+
+            const hash = await window.api.fileHash(sourcePath)
+            const deployments = await window.api.getDeployments()
+            if (!deployments[project.id]) {
+              deployments[project.id] = {}
+            }
+            deployments[project.id][skillName] = {
+              deployedAt: new Date().toISOString(),
+              libraryHash: hash,
+              currentHash: hash
+            }
+            await window.api.setDeployments(deployments)
           }
-          deployments[project.id][skillName] = {
-            deployedAt: new Date().toISOString(),
-            libraryHash: hash,
-            currentHash: hash
-          }
-          await window.api.setDeployments(deployments)
         }
       }
 
@@ -317,21 +344,29 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
               <div className="mb-4">
                 <h4 className="text-sm text-muted mb-2">Deploy to Project</h4>
                 <div className="space-y-1">
-                  {config.projects.map(project => (
-                    <button
-                      key={project.id}
-                      data-testid={`project-${project.id}`}
-                      onClick={() => setSelectedProjectId(project.id)}
-                      className={`w-full text-left px-3 py-2 rounded border ${
-                        selectedProjectId === project.id
-                          ? 'border-accent bg-accent/10'
-                          : 'border-border hover:border-muted'
-                      }`}
-                    >
-                      <div className="font-medium text-fg text-sm">{project.name}</div>
-                      <div className="text-xs text-muted font-mono truncate">{project.path}</div>
-                    </button>
-                  ))}
+                  {config.projects.map(project => {
+                    const profile = getProfileById(project.targetProfile || 'claude-code')
+                    return (
+                      <button
+                        key={project.id}
+                        data-testid={`project-${project.id}`}
+                        onClick={() => setSelectedProjectId(project.id)}
+                        className={`w-full text-left px-3 py-2 rounded border ${
+                          selectedProjectId === project.id
+                            ? 'border-accent bg-accent/10'
+                            : 'border-border hover:border-muted'
+                        }`}
+                      >
+                        <div className="font-medium text-fg text-sm">{project.name}</div>
+                        <div className="text-xs text-muted font-mono truncate">{project.path}</div>
+                        {profile && (
+                          <div className="text-xs text-accent mt-0.5">
+                            {profile.name} ({profile.format})
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}

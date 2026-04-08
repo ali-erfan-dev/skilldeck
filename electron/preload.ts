@@ -33,4 +33,10 @@ contextBridge.exposeInMainWorld('api', {
   // Tool sync
   detectTools: () => ipcRenderer.invoke('tools:detect'),
   syncToTools: (skillName: string, content: string, toolIds: string[]) => ipcRenderer.invoke('tools:sync', skillName, content, toolIds),
+
+  // Target profiles
+  listProfiles: () => ipcRenderer.invoke('profiles:list'),
+  deployProfile: (projectId: string, skillName: string, skillContent: string, profileId: string) => ipcRenderer.invoke('deploy:profile', projectId, skillName, skillContent, profileId),
+  undeployProfile: (projectId: string, skillName: string, profileId: string) => ipcRenderer.invoke('undeploy:profile', projectId, skillName, profileId),
+  migrateConfig: () => ipcRenderer.invoke('config:migrate'),
 })

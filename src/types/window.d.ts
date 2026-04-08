@@ -19,6 +19,7 @@ declare global {
         deployedAt: string
         libraryHash: string
         currentHash?: string
+        profileId?: string
       }>>>
       setDeployments: (data: object) => Promise<void>
 
@@ -40,6 +41,12 @@ declare global {
       // Tool detection and sync
       detectTools: () => Promise<{ id: string; name: string; path: string }[]>
       syncToTools: (skillName: string, content: string, toolIds: string[]) => Promise<{ toolId: string; success: boolean; path: string }[]>
+
+      // Target profiles
+      listProfiles: () => Promise<{ id: string; name: string; format: string; targetDir: string; targetFile?: string }[]>
+      deployProfile: (projectId: string, skillName: string, skillContent: string, profileId: string) => Promise<{ success: boolean; path: string; format: string }>
+      undeployProfile: (projectId: string, skillName: string, profileId: string) => Promise<{ success: boolean }>
+      migrateConfig: () => Promise<Config>
     }
   }
 }

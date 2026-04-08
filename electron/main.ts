@@ -289,6 +289,238 @@ ipcMain.handle('file:hash', (_event, path: string) => {
   return crypto.createHash('md5').update(content).digest('hex')
 })
 
+// IPC: List built-in target profiles
+ipcMain.handle('profiles:list', () => {
+  return [
+    { id: 'claude-code', name: 'Claude Code', format: 'skill-dir', targetDir: '.claude/skills' },
+    { id: 'codex', name: 'Codex', format: 'skill-dir', targetDir: '.codex/skills' },
+    { id: 'kiro', name: 'Kiro', format: 'skill-dir', targetDir: '.kiro/skills' },
+    { id: 'amp', name: 'Amp', format: 'skill-dir', targetDir: '.amp/skills' },
+    { id: 'agent-protocol', name: 'Agent Protocol', format: 'skill-dir', targetDir: '.agents/skills' },
+    { id: 'windsurf', name: 'Windsurf', format: 'instructions-file', targetDir: '.', targetFile: '.windsurfrules' },
+    { id: 'copilot', name: 'GitHub Copilot', format: 'instructions-file', targetDir: '.', targetFile: '.github/copilot-instructions.md' },
+    { id: 'aider', name: 'Aider', format: 'instructions-file', targetDir: '.', targetFile: 'CONVENTIONS.md' },
+    { id: 'opencode', name: 'OpenCode', format: 'instructions-file', targetDir: '.', targetFile: 'AGENTS.md' },
+    { id: 'cursor-rules', name: 'Cursor Rules', format: 'rules-dir', targetDir: '.cursor/rules' },
+  ]
+})
+
+// IPC: Deploy a skill to a project using a target profile
+ipcMain.handle('deploy:profile', (_event, projectId: string, skillName: string, skillContent: string, profileId: string) => {
+  const profiles: Record<string, { format: string; targetDir: string; targetFile?: string }> = {
+    'claude-code': { format: 'skill-dir', targetDir: '.claude/skills' },
+    'codex': { format: 'skill-dir', targetDir: '.codex/skills' },
+    'kiro': { format: 'skill-dir', targetDir: '.kiro/skills' },
+    'amp': { format: 'skill-dir', targetDir: '.amp/skills' },
+    'agent-protocol': { format: 'skill-dir', targetDir: '.agents/skills' },
+    'windsurf': { format: 'instructions-file', targetDir: '.', targetFile: '.windsurfrules' },
+    'copilot': { format: 'instructions-file', targetDir: '.', targetFile: '.github/copilot-instructions.md' },
+    'aider': { format: 'instructions-file', targetDir: '.', targetFile: 'CONVENTIONS.md' },
+    'opencode': { format: 'instructions-file', targetDir: '.', targetFile: 'AGENTS.md' },
+    'cursor-rules': { format: 'rules-dir', targetDir: '.cursor/rules' },
+  }
+
+  const profile = profiles[profileId]
+  if (!profile) {
+    throw new Error(`Unknown profile: ${profileId}`)
+  }
+
+  // Read config to find project path
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const project = (config.projects || []).find((p: any) => p.id === projectId)
+  if (!project) {
+    throw new Error(`Project not found: ${projectId}`)
+  }
+
+  const projectPath = project.path
+
+  if (profile.format === 'skill-dir') {
+    // Create <projectPath>/<targetDir>/<skillName>/SKILL.md
+    const skillDir = path.join(projectPath, profile.targetDir, skillName)
+    const skillPath = path.join(skillDir, 'SKILL.md')
+    fs.mkdirSync(skillDir, { recursive: true })
+    fs.writeFileSync(skillPath, skillContent)
+    return { success: true, path: skillPath, format: profile.format }
+  }
+
+  if (profile.format === 'instructions-file') {
+    // Append/update a delimited section in <projectPath>/<targetDir>/<targetFile>
+    const filePath = path.join(projectPath, profile.targetDir!, profile.targetFile!)
+    const startMarker = `<!-- skilldeck:skill-start:${skillName} -->`
+    const endMarker = `<!-- skilldeck:skill-end:${skillName} -->`
+    // Strip frontmatter from content for instructions-file
+    const body = skillContent.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim()
+    const section = `${startMarker}\n${body}\n${endMarker}`
+
+    // Ensure parent directory exists
+    const parentDir = path.dirname(filePath)
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true })
+    }
+
+    let existing = ''
+    if (fs.existsSync(filePath)) {
+      existing = fs.readFileSync(filePath, 'utf8')
+    }
+
+    // Remove existing section if present, then append new
+    const existingStartIdx = existing.indexOf(startMarker)
+    let newContent: string
+    if (existingStartIdx !== -1) {
+      // Replace existing section
+      const existingEndIdx = existing.indexOf(endMarker, existingStartIdx)
+      if (existingEndIdx !== -1) {
+        const afterEnd = existingEndIdx + endMarker.length
+        let cutEnd = afterEnd
+        if (existing[cutEnd] === '\n') cutEnd++
+        const before = existing.slice(0, existingStartIdx).trimEnd()
+        const after = existing.slice(cutEnd).trimStart()
+        newContent = before.length > 0 ? `${before}\n\n${section}\n` : `${section}\n`
+        if (after.length > 0) {
+          // Preserve content after the section
+          newContent = `${before.length > 0 ? before + '\n\n' : ''}${section}\n${after.startsWith('\n') ? '' : '\n'}${after}`
+        }
+      } else {
+        newContent = existing + '\n' + section + '\n'
+      }
+    } else {
+      newContent = existing.trim().length > 0 ? `${existing.trim()}\n\n${section}\n` : `${section}\n`
+    }
+
+    fs.writeFileSync(filePath, newContent)
+    return { success: true, path: filePath, format: profile.format }
+  }
+
+  if (profile.format === 'rules-dir') {
+    // Create <projectPath>/<targetDir>/<skillName>.mdc with YAML frontmatter
+    const rulesDir = path.join(projectPath, profile.targetDir)
+    const rulePath = path.join(rulesDir, `${skillName}.mdc`)
+    fs.mkdirSync(rulesDir, { recursive: true })
+    const body = skillContent.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim()
+    const mdcContent = `---\ndescription: ${skillName}\nglobs:\n---\n${body}\n`
+    fs.writeFileSync(rulePath, mdcContent)
+    return { success: true, path: rulePath, format: profile.format }
+  }
+
+  throw new Error(`Unknown format: ${profile.format}`)
+})
+
+// IPC: Undeploy a skill from a project using a target profile
+ipcMain.handle('undeploy:profile', (_event, projectId: string, skillName: string, profileId: string) => {
+  const profiles: Record<string, { format: string; targetDir: string; targetFile?: string }> = {
+    'claude-code': { format: 'skill-dir', targetDir: '.claude/skills' },
+    'codex': { format: 'skill-dir', targetDir: '.codex/skills' },
+    'kiro': { format: 'skill-dir', targetDir: '.kiro/skills' },
+    'amp': { format: 'skill-dir', targetDir: '.amp/skills' },
+    'agent-protocol': { format: 'skill-dir', targetDir: '.agents/skills' },
+    'windsurf': { format: 'instructions-file', targetDir: '.', targetFile: '.windsurfrules' },
+    'copilot': { format: 'instructions-file', targetDir: '.', targetFile: '.github/copilot-instructions.md' },
+    'aider': { format: 'instructions-file', targetDir: '.', targetFile: 'CONVENTIONS.md' },
+    'opencode': { format: 'instructions-file', targetDir: '.', targetFile: 'AGENTS.md' },
+    'cursor-rules': { format: 'rules-dir', targetDir: '.cursor/rules' },
+  }
+
+  const profile = profiles[profileId]
+  if (!profile) {
+    throw new Error(`Unknown profile: ${profileId}`)
+  }
+
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const project = (config.projects || []).find((p: any) => p.id === projectId)
+  if (!project) {
+    throw new Error(`Project not found: ${projectId}`)
+  }
+
+  const projectPath = project.path
+
+  if (profile.format === 'skill-dir') {
+    // Delete <projectPath>/<targetDir>/<skillName>/SKILL.md and dir if empty
+    const skillDir = path.join(projectPath, profile.targetDir, skillName)
+    const skillPath = path.join(skillDir, 'SKILL.md')
+    if (fs.existsSync(skillPath)) {
+      fs.unlinkSync(skillPath)
+    }
+    // Remove empty dir
+    if (fs.existsSync(skillDir) && fs.readdirSync(skillDir).length === 0) {
+      fs.rmSync(skillDir, { recursive: true })
+    }
+    return { success: true }
+  }
+
+  if (profile.format === 'instructions-file') {
+    // Remove delimited section from <projectPath>/<targetDir>/<targetFile>
+    const filePath = path.join(projectPath, profile.targetDir!, profile.targetFile!)
+    if (!fs.existsSync(filePath)) return { success: true }
+
+    const content = fs.readFileSync(filePath, 'utf8')
+    const startMarker = `<!-- skilldeck:skill-start:${skillName} -->`
+    const endMarker = `<!-- skilldeck:skill-end:${skillName} -->`
+    const startIdx = content.indexOf(startMarker)
+    if (startIdx === -1) return { success: true } // Section not found, already removed
+
+    const endIdx = content.indexOf(endMarker, startIdx)
+    if (endIdx === -1) return { success: true }
+
+    const afterEnd = endIdx + endMarker.length
+    let cutEnd = afterEnd
+    if (content[cutEnd] === '\n') cutEnd++
+
+    let newContent = content.slice(0, startIdx) + content.slice(cutEnd)
+    newContent = newContent.trim()
+    if (newContent.length === 0) {
+      fs.unlinkSync(filePath)
+    } else {
+      fs.writeFileSync(filePath, newContent + '\n')
+    }
+    return { success: true }
+  }
+
+  if (profile.format === 'rules-dir') {
+    // Delete <projectPath>/<targetDir>/<skillName>.mdc
+    const rulePath = path.join(projectPath, profile.targetDir, `${skillName}.mdc`)
+    if (fs.existsSync(rulePath)) {
+      fs.unlinkSync(rulePath)
+    }
+    return { success: true }
+  }
+
+  throw new Error(`Unknown format: ${profile.format}`)
+})
+
+// IPC: Migrate config — add targetProfile to projects missing it
+ipcMain.handle('config:migrate', () => {
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  let changed = false
+
+  if (config.projects) {
+    for (const project of config.projects) {
+      if (!project.targetProfile) {
+        // Infer profile from skillsPath, default to claude-code
+        if (project.skillsPath && project.skillsPath.includes('codex')) {
+          project.targetProfile = 'codex'
+        } else if (project.skillsPath && project.skillsPath.includes('.agents')) {
+          project.targetProfile = 'agent-protocol'
+        } else if (project.skillsPath && project.skillsPath.includes('.kiro')) {
+          project.targetProfile = 'kiro'
+        } else if (project.skillsPath && project.skillsPath.includes('.amp')) {
+          project.targetProfile = 'amp'
+        } else {
+          project.targetProfile = 'claude-code'
+        }
+        changed = true
+      }
+    }
+  }
+
+  if (changed) {
+    fs.writeFileSync(getConfigPath(), JSON.stringify(config, null, 2))
+  }
+  return config
+})
+
 // IPC: Directory picker
 ipcMain.handle('dialog:openDirectory', async () => {
   const { dialog } = await import('electron')

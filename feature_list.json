@@ -628,8 +628,8 @@
         "F011",
         "F014"
       ],
-      "passes": false,
-      "notes": "Design by Claude Code research session. Section delimiter format: <!-- skilldeck:skill-start:<name> --> and <!-- skilldeck:skill-end:<name> --> ensures precise removal without regex corruption on skills containing ## headers."
+      "passes": true,
+      "notes": "Verified with Playwright — deploys to skill-dir (claude-code), instructions-file (windsurf), and rules-dir (cursor-rules) formats. Profile dropdown in add/edit project. Migration adds targetProfile to existing projects."
     },
     {
       "id": "F026",
