@@ -121,7 +121,7 @@ function scanDirectory(dir: string, source: string): Skill[] {
   return results
 }
 
-function scanSkillDirs(dir: string, source: string): Skill[] {
+function recursiveScanSkillDirs(dir: string, source: string): Skill[] {
   const results: Skill[] = []
 
   if (!fs.existsSync(dir)) {
@@ -129,23 +129,25 @@ function scanSkillDirs(dir: string, source: string): Skill[] {
   }
 
   try {
-    const subdirs = fs.readdirSync(dir, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => d.name)
+    const entries = fs.readdirSync(dir, { withFileTypes: true })
 
-    for (const subdir of subdirs) {
-      const skillPath = path.join(dir, subdir, 'SKILL.md')
-      if (fs.existsSync(skillPath)) {
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        results.push(...recursiveScanSkillDirs(fullPath, source))
+      } else if (entry.isFile() && entry.name === 'SKILL.md') {
         try {
-          const content = fs.readFileSync(skillPath, 'utf8')
-          results.push(parseSkillFromContent(content, `${subdir}.md`, source, skillPath))
+          const content = fs.readFileSync(fullPath, 'utf8')
+          const skillDirName = path.basename(dir)
+          console.log(`[Skilldeck] Found skill: ${skillDirName} at ${fullPath}`)
+          results.push(parseSkillFromContent(content, `${skillDirName}.md`, source, fullPath))
         } catch (err) {
-          console.warn(`Failed to read ${skillPath}:`, err)
+          console.warn(`Failed to read ${fullPath}:`, err)
         }
       }
     }
   } catch (err) {
-    console.warn(`Failed to scan skill directories ${dir}:`, err)
+    console.warn(`Failed to scan directory ${dir}:`, err)
   }
 
   return results
@@ -218,12 +220,29 @@ ipcMain.handle('library:write', (_event, filename: string, content: string) => {
   return true
 })
 
-ipcMain.handle('library:delete', (_event, filename: string) => {
-  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
-  const libPath = config.libraryPath || getLibraryPath()
-  const filePath = path.join(libPath, filename)
-  fs.unlinkSync(filePath)
-  return true
+ipcMain.handle('library:delete', (_event, filePathOrFilename: string) => {
+  if (!filePathOrFilename) return false
+
+  let targetPath = filePathOrFilename
+
+  // If it's not an absolute path, assume it's a filename in the library
+  if (!path.isAbsolute(filePathOrFilename)) {
+    const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+    const libPath = config.libraryPath || getLibraryPath()
+    targetPath = path.join(libPath, filePathOrFilename)
+  }
+
+  try {
+    if (fs.existsSync(targetPath)) {
+      fs.unlinkSync(targetPath)
+      return true
+    }
+    console.error(`Skill file not found at ${targetPath}`)
+    return false
+  } catch (err) {
+    console.error(`Failed to delete skill at ${targetPath}:`, err)
+    return false
+  }
 })
 
 // IPC: Deployments
@@ -239,6 +258,10 @@ ipcMain.handle('deployments:set', (_event, data: object) => {
 
 // IPC: File operations
 ipcMain.handle('file:copy', (_event, src: string, dest: string) => {
+  const destDir = path.dirname(dest)
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true })
+  }
   fs.copyFileSync(src, dest)
   return true
 })
@@ -289,14 +312,20 @@ ipcMain.handle('scan:all', () => {
   const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
   const homedir = app.getPath('home')
   const results: Skill[] = []
+  console.log(`[Skilldeck] Starting full skill scan... Home: ${homedir}`)
 
   // 1. Skilldeck library
   const libPath = config.libraryPath || getLibraryPath()
+  console.log(`[Skilldeck] Scanning library: ${libPath}`)
   results.push(...scanDirectory(libPath, 'skilldeck'))
 
   // 2. Claude Code skills (~/.claude/skills/*/SKILL.md)
   const claudeSkillsDir = path.join(homedir, '.claude', 'skills')
-  results.push(...scanSkillDirs(claudeSkillsDir, 'claude-code'))
+  results.push(...recursiveScanSkillDirs(claudeSkillsDir, 'claude-code'))
+
+  // 2b. Claude Code plugin skills (~/.claude/plugins/*/skills/*/SKILL.md)
+  const claudePluginsDir = path.join(homedir, '.claude', 'plugins')
+  results.push(...recursiveScanSkillDirs(claudePluginsDir, 'claude-plugin'))
 
   // 3. Claude Code commands (~/.claude/commands/*.md)
   const claudeCommandsDir = path.join(homedir, '.claude', 'commands')
@@ -304,31 +333,31 @@ ipcMain.handle('scan:all', () => {
 
   // 4. Claude Code system skills (~/.claude/skills/.system/*/SKILL.md)
   const claudeSystemDir = path.join(homedir, '.claude', 'skills', '.system')
-  results.push(...scanSkillDirs(claudeSystemDir, 'claude-code-system'))
+  results.push(...recursiveScanSkillDirs(claudeSystemDir, 'claude-code-system'))
 
   // 5. Agent Protocol (~/.agents/skills/*/SKILL.md)
   const agentsDir = path.join(homedir, '.agents', 'skills')
-  results.push(...scanSkillDirs(agentsDir, 'agent-protocol'))
+  results.push(...recursiveScanSkillDirs(agentsDir, 'agent-protocol'))
 
   // 6. Codex (~/.codex/skills/*/SKILL.md)
   const codexDir = path.join(homedir, '.codex', 'skills')
-  results.push(...scanSkillDirs(codexDir, 'codex'))
+  results.push(...recursiveScanSkillDirs(codexDir, 'codex'))
 
   // 7. Codex system (~/.codex/skills/.system/*/SKILL.md)
   const codexSystemDir = path.join(homedir, '.codex', 'skills', '.system')
-  results.push(...scanSkillDirs(codexSystemDir, 'codex-system'))
+  results.push(...recursiveScanSkillDirs(codexSystemDir, 'codex-system'))
 
   // 8. Kiro (~/.kiro/skills/*/SKILL.md)
   const kiroDir = path.join(homedir, '.kiro', 'skills')
-  results.push(...scanSkillDirs(kiroDir, 'kiro'))
+  results.push(...recursiveScanSkillDirs(kiroDir, 'kiro'))
 
   // 9. Amp (~/.amp/skills/*/SKILL.md)
   const ampDir = path.join(homedir, '.amp', 'skills')
-  results.push(...scanSkillDirs(ampDir, 'amp'))
+  results.push(...recursiveScanSkillDirs(ampDir, 'amp'))
 
   // 10. Gemini (~/.gemini/skills/*/SKILL.md)
   const geminiDir = path.join(homedir, '.gemini', 'skills')
-  results.push(...scanSkillDirs(geminiDir, 'gemini'))
+  results.push(...recursiveScanSkillDirs(geminiDir, 'gemini'))
 
   // 11. Registered projects
   if (config.projects) {

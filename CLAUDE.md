@@ -13,19 +13,27 @@ Skilldeck is also a harness engineering experiment. It is being built by AI agen
 ## Rules Every Agent Must Follow
 
 1. **Read before touching.** Before any coding session begins, read this file, `claude-progress.txt`, and `feature_list.json`. Do not skip this.
-2. **One feature at a time. One feature, one commit.** Pick the highest-priority incomplete feature from `feature_list.json`. Complete it. Verify it passes with Playwright. Mark it passing. Commit. Then move to the next feature. The commit sequence for every feature is:
+2. **One feature at a time. One feature, one commit.** Pick the highest-priority incomplete feature from `feature_list.json`. Complete it. Run the full verification sequence below. Commit. Then move to the next feature.
+
+   **Full verification sequence — every step must pass before committing:**
    ```bash
-   # 1. Run the test — must pass before anything else
+   # Step 1 — feature test (must pass first)
    npx playwright test verify.spec.ts --grep F00X
 
-   # 2. Mark the feature passing
-   node -e "const fs=require('fs');const f=JSON.parse(fs.readFileSync('feature_list.json','utf8'));const x=f.features.find(x=>x.id==='F00X');x.passes=true;x.notes='Verified with Playwright';fs.writeFileSync('feature_list.json',JSON.stringify(f,null,2));"
+   # Step 2 — invariant checks (always-true system properties)
+   node check-invariants.js --always
 
-   # 3. Commit immediately — one feature per commit, no batching
+   # Step 3 — regression gate (re-run affected passing tests)
+   REGRESSION=$(node get-regression-tests.js F00X)
+   npx playwright test verify.spec.ts --grep "$REGRESSION"
+
+   # Step 4 — only if all three pass: mark passing, commit
+   node -e "const fs=require('fs');const f=JSON.parse(fs.readFileSync('feature_list.json','utf8'));const x=f.features.find(x=>x.id==='F00X');x.passes=true;x.notes='Verified with Playwright + invariants + regression gate';fs.writeFileSync('feature_list.json',JSON.stringify(f,null,2));"
    git add .
    git commit -m "feat(F00X): short description of what was built"
    ```
-   Do not build two features and commit them together. Do not commit code that has no passing test. The git log is the audit trail — one commit per feature makes it readable and reversible.
+
+   If Step 2 or Step 3 fails, you have a regression or invariant violation. Do not commit. Fix the failure first — even if it means reverting the new feature and understanding why it broke existing behavior. The regression gate debug output (stderr) will tell you which surfaces were affected and which tests failed.
 3. **Never mark a feature as passing without verifying it.** Passing means: the feature works as a user would experience it — not that the code exists, not that it compiles, not that a unit test passed. **Verification protocol for UI features:** start the app, interact with the specific UI element described in the feature steps, observe the result. If you cannot run the app or interact with the UI, mark `passes: false` with note "NEEDS HUMAN VERIFICATION" — do NOT assume the UI works because the code looks correct. Code that exists but UI that does not respond is a FAILING feature.
 
    **The mandatory verification command before marking any feature passing:**
@@ -43,6 +51,45 @@ Replace `F001` with the actual feature ID. Replace the notes string as appropria
 7. **Run `./init.sh` at the start of every session** to ensure the environment is in a working state before building. This works in Claude Code's bash environment on Windows. For manual PowerShell use, run `.\init.ps1` instead.
 8. **If something is broken when you arrive, fix it before adding anything new.** A broken foundation makes everything built on top of it unreliable.
 9. **If a Playwright test fails 3 times in a row on the same feature, stop.** Do not try a fourth approach. Write a blocker entry in `claude-progress.txt` with: what you tried all three times, the exact error output, your root cause hypothesis. Commit whatever is working. Then stop completely — do not move to the next feature. This rule is absolute and cannot be overridden by reasoning about "just one more approach."
+
+10. **Regression gate — never commit if previously-passing tests now fail.** The `get-regression-tests.js` script derives which tests to re-run based on what files you changed. If any previously-passing feature fails the regression gate, that is a regression you introduced. Do not mark the new feature passing. Do not commit. Understand what changed, fix the regression, then re-run the full verification sequence from Step 1. A new feature that breaks an old feature is not a completed feature.
+
+11. **Feature intake protocol — when the human requests a new feature in chat:**
+
+    **a. CHECK** — search `feature_list.json` for similar existing features. If a close match exists, clarify whether this extends it or is genuinely new.
+
+    **b. DRAFT** — create a complete feature entry with all required fields:
+    ```json
+    {
+      "id": "F0XX",
+      "phase": 1,
+      "category": "library|projects|deployment|settings|discovery",
+      "name": "Short name",
+      "description": "One sentence, user-facing, verifiable",
+      "steps": ["minimum 4 end-to-end steps a Playwright test can follow"],
+      "touches": ["surfaces from system-contract.json this feature shares"],
+      "depends_on": ["feature IDs that must pass before this can be built"],
+      "passes": false,
+      "notes": ""
+    }
+    ```
+
+    **c. CONFIRM** — show the draft to the human before writing anything:
+    ```
+    "I'm adding this feature. Does this match what you want?
+    [show draft entry]
+    If yes, I'll add it to feature_list.json and update the surfaces map."
+    ```
+    Wait for explicit confirmation. Do not add to the feature list without it.
+
+    **d. REGISTER** — write to `feature_list.json` using the Node command (never string replace). Update `system-contract.json` surfaces map if the new feature touches a surface not yet listed.
+
+    **e. SEQUENCE** — decide priority:
+    - If human said "add and keep working on current task" → queue it, finish current feature first
+    - If human said "add and build it now" → finish current feature first, then build the new one
+    - Never abandon a half-built feature to start a new one
+
+    **Phase 2 TDD addition:** For Phase 2 features, write the failing test in `verify.spec.ts` BEFORE implementing. Commit the failing test first: `test(F0XX): add failing test`. Then implement. Then commit the passing feature: `feat(F0XX): implement — test now green`.
 
 ## Stack
 
@@ -76,7 +123,11 @@ skilldeck/
 ├── CLAUDE.md                  # This file — read first
 ├── claude-progress.txt        # Session log — read second
 ├── feature_list.json          # Ground truth for completion — read third
+├── system-contract.json       # Invariants + surfaces map for regression detection
 ├── init.sh                    # Start the dev environment
+├── check-invariants.js        # Run invariant checks before every commit
+├── get-regression-tests.js    # Derive regression tests from changed files
+├── reset-features.js          # Reset falsely-passing features
 ├── package.json
 ├── vite.config.ts
 ├── electron/
@@ -172,36 +223,31 @@ When running autonomously (no human present), follow this loop exactly:
 LOOP:
   1. Run ./init.sh
   2. Read claude-progress.txt
-  3. Find next feature where passes = false in feature_list.json
-  4. If none → all Phase 1 features pass → write final session entry → STOP
-  5. Implement the feature
-  6. Run: npx playwright test verify.spec.ts --grep F00X
-  7. If test passes:
-       - Mark feature passing in feature_list.json (Node command, not string replace)
-       - Write session entry in claude-progress.txt
-       - git add . && git commit -m "feat(F00X): description"
-       - Go to LOOP
-  8. If test fails:
-       - Increment attempt counter for this feature
-       - If attempt counter < 3: fix the issue, go to step 6
-       - If attempt counter >= 3: STOP — write blocker entry in claude-progress.txt
-         explaining exactly what was tried and what the error output was
+  3. Find next feature where passes = false in feature_list.json (lowest ID, current phase)
+  4. If none → all phase features pass → write final session entry → STOP
+  5. Check depends_on — all listed features must pass before building this one
+     If a dependency is failing → skip this feature, find next buildable one
+  6. Implement the feature
+  7. Run feature test:
+       npx playwright test verify.spec.ts --grep F00X
+       If fails → increment attempt counter → if < 3 try again → if >= 3 STOP (blocker)
+  8. Run invariant checks:
+       node check-invariants.js --always
+       If fails → you broke a system invariant → fix before proceeding → go to step 7
+  9. Run regression gate:
+       REGRESSION=$(node get-regression-tests.js F00X)
+       npx playwright test verify.spec.ts --grep "$REGRESSION"
+       If any previously-passing test now fails → you introduced a regression
+       Fix the regression → go to step 7 (full sequence again)
+ 10. All checks pass → mark passing → write progress → commit → go to LOOP
 ```
 
-**The stuck rule is absolute.** Three failed attempts on one feature = stop and surface the problem. Do not try a fourth approach. Do not move to the next feature. The human needs to unblock you — attempting more variations wastes context and makes the problem harder to diagnose.
+**The stuck rule is absolute.** Three failed attempts = stop and surface the problem.
 
 **When stopping due to a blocker, the claude-progress.txt entry must include:**
 - The feature ID and name
 - All three approaches attempted (what you changed each time)
-- The exact Playwright error output from the last attempt
+- The exact error output from the last attempt
+- Which invariant or regression test failed (if applicable)
 - Your hypothesis about the root cause
 - What you think needs to happen to unblock it
-
-### Phase 2 Testing Rule
-
-For Phase 2 features, write the Playwright test in `verify.spec.ts` before implementing the feature. The test must fail first (red), then pass after implementation (green). Never mark a Phase 2 feature passing without this red-green cycle documented in the commit history.
-
-Commit sequence for every Phase 2 feature:
-1. `git commit -m "test(F019): add failing test for machine skill scan"`
-2. Implement the feature
-3. `git commit -m "feat(F019): implement machine skill scan — test now green"`

@@ -1,0 +1,110 @@
+{
+  "version": "1.0",
+  "project": "Skilldeck",
+  "description": "System contract for regression detection. Two sections: invariants (always-true properties checked before every commit) and surfaces (shared code surfaces mapped to the features that depend on them). When a feature touches a surface, all other features sharing that surface must be re-tested.",
+
+  "invariants": [
+    {
+      "id": "INV-001",
+      "description": "~/.skilldeck/config.json is valid JSON and has required shape",
+      "check": "node checks/inv-config-valid.js",
+      "triggers": "always"
+    },
+    {
+      "id": "INV-002",
+      "description": "~/.skilldeck/deployments.json is valid JSON",
+      "check": "node checks/inv-deployments-valid.js",
+      "triggers": "always"
+    },
+    {
+      "id": "INV-003",
+      "description": "Every deployment record references a project ID that exists in config.json",
+      "check": "node checks/inv-deployments-consistent.js",
+      "triggers": "always"
+    },
+    {
+      "id": "INV-004",
+      "description": "No IPC channel is registered more than once in electron/main.ts",
+      "check": "node checks/inv-no-duplicate-ipc.js",
+      "triggers": "always"
+    },
+    {
+      "id": "INV-005",
+      "description": "Every skill displayed in the library view has a corresponding .md file on disk",
+      "check": "node checks/inv-library-disk-sync.js",
+      "triggers": "on-library-change"
+    },
+    {
+      "id": "INV-006",
+      "description": "TypeScript compiles without errors",
+      "check": "npx tsc --noEmit",
+      "triggers": "always"
+    }
+  ],
+
+  "surfaces": {
+    "store.skills": {
+      "description": "Zustand skills store — shape, actions, selectors",
+      "files": ["src/store/skillsStore.ts"],
+      "affected_features": ["F004", "F005", "F006", "F007", "F008", "F009", "F010"]
+    },
+    "store.projects": {
+      "description": "Zustand projects store — shape, actions, selectors",
+      "files": ["src/store/projectsStore.ts"],
+      "affected_features": ["F011", "F012", "F013", "F016"]
+    },
+    "ipc.skills": {
+      "description": "IPC handlers for skill operations in electron/ipc/skills.ts",
+      "files": ["electron/ipc/skills.ts"],
+      "affected_features": ["F004", "F005", "F006", "F007", "F008"]
+    },
+    "ipc.projects": {
+      "description": "IPC handlers for project operations in electron/ipc/projects.ts",
+      "files": ["electron/ipc/projects.ts"],
+      "affected_features": ["F011", "F012", "F013", "F016", "F017"]
+    },
+    "ipc.deployment": {
+      "description": "IPC handlers for deployment operations",
+      "files": ["electron/ipc/filesystem.ts"],
+      "affected_features": ["F014", "F015", "F016", "F017"]
+    },
+    "preload": {
+      "description": "Electron contextBridge preload — exposes IPC to renderer",
+      "files": ["electron/preload.ts"],
+      "affected_features": ["F004", "F005", "F006", "F007", "F008", "F011", "F012", "F013", "F014", "F015", "F016", "F017", "F018"]
+    },
+    "config.json": {
+      "description": "~/.skilldeck/config.json file format and initialization",
+      "files": ["electron/ipc/filesystem.ts", "electron/main.ts"],
+      "affected_features": ["F002", "F011", "F012", "F013", "F018"]
+    },
+    "deployments.json": {
+      "description": "~/.skilldeck/deployments.json file format and initialization",
+      "files": ["electron/ipc/filesystem.ts"],
+      "affected_features": ["F002", "F014", "F015", "F016", "F017"]
+    },
+    "app.entry": {
+      "description": "Electron main entry point and app initialization",
+      "files": ["electron/main.ts"],
+      "affected_features": ["F001", "F002", "F003"]
+    },
+    "types": {
+      "description": "Shared TypeScript types in src/types/index.ts",
+      "files": ["src/types/index.ts"],
+      "affected_features": ["F004", "F005", "F006", "F007", "F008", "F011", "F012", "F013", "F014", "F015", "F016", "F017", "F018"]
+    }
+  },
+
+  "phase_2_surfaces": {
+    "discovery.scanner": {
+      "description": "Machine skill scanner — reads from multiple tool directories",
+      "files": ["src/services/scanner.ts"],
+      "affected_features": ["F019", "F020", "F021", "F022"]
+    },
+    "discovery.sync": {
+      "description": "Cross-tool sync — writes to multiple tool directories",
+      "files": ["src/services/sync.ts"],
+      "affected_features": ["F021", "F022"]
+    }
+  }
+}

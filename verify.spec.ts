@@ -31,29 +31,33 @@ const LIBRARY_DIR = path.join(SKILLDECK_DIR, 'library')
 const CONFIG_PATH = path.join(SKILLDECK_DIR, 'config.json')
 const DEPLOYMENTS_PATH = path.join(SKILLDECK_DIR, 'deployments.json')
 
+/**
+ * Clears ONLY ~/.skilldeck/ — safe to call in any test.
+ * Does NOT touch ~/.claude/, ~/.codex/, or any other tool directory.
+ * Use this for Phase 1 tests (library, projects, deployment).
+ */
 function cleanSkilldeck() {
   if (fs.existsSync(SKILLDECK_DIR)) {
     fs.rmSync(SKILLDECK_DIR, { recursive: true, force: true })
   }
-  // Also clean external skill directories that scanAll would find
-  // For tests, we want a clean slate without interference from user's actual skills
-  const homedir = os.homedir()
-  const externalDirs = [
-    path.join(homedir, '.claude', 'skills'),
-    path.join(homedir, '.codex', 'skills'),
-    path.join(homedir, '.agents', 'skills'),
-    path.join(homedir, '.kiro', 'skills'),
-    path.join(homedir, '.amp', 'skills'),
-    path.join(homedir, '.gemini', 'skills'),
-  ]
-  for (const dir of externalDirs) {
-    if (fs.existsSync(dir)) {
-      try {
-        // Remove entire directory to ensure clean test state
-        fs.rmSync(dir, { recursive: true, force: true })
-      } catch {
-        // Ignore errors if directory is in use
-      }
+}
+
+/**
+ * Removes a specific named test skill directory from a tool location.
+ * Safe to call in finally blocks — only removes the exact directory named.
+ * Never removes the parent skills directory or anything else.
+ *
+ * Usage:
+ *   cleanTestSkillDir('.claude', 'skills', 'test-f019-skill')
+ *   → removes ~/.claude/skills/test-f019-skill/ only
+ */
+function cleanTestSkillDir(tool: string, subdir: string, skillName: string) {
+  const targetDir = path.join(os.homedir(), tool, subdir, skillName)
+  if (fs.existsSync(targetDir)) {
+    try {
+      fs.rmSync(targetDir, { recursive: true, force: true })
+    } catch {
+      // Ignore errors — best effort cleanup
     }
   }
 }
@@ -991,12 +995,9 @@ description: "A test skill from Agent Protocol"
 
     await app.close()
   } finally {
-    // Cleanup test directories
-    fs.rmSync(testClaudeSkillDir, { recursive: true, force: true })
-    fs.rmSync(testAgentSkillDir, { recursive: true, force: true })
-    // Remove parent dirs if empty
-    try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
-    try { fs.rmdirSync(path.join(homedir, '.agents', 'skills')) } catch {}
+    // Cleanup — only remove the specific test directories we created
+    cleanTestSkillDir('.claude', 'skills', 'test-f019-skill')
+    cleanTestSkillDir('.agents', 'skills', 'test-f019-agent')
   }
 })
 
@@ -1084,11 +1085,9 @@ description: "A test skill from Codex"
 
     await app.close()
   } finally {
-    // Cleanup test directories
-    fs.rmSync(testClaudeSkillDir, { recursive: true, force: true })
-    fs.rmSync(testCodexSkillDir, { recursive: true, force: true })
-    try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
-    try { fs.rmdirSync(path.join(homedir, '.codex', 'skills')) } catch {}
+    // Cleanup — only remove the specific test directories we created
+    cleanTestSkillDir('.claude', 'skills', 'test-f020-claude')
+    cleanTestSkillDir('.codex', 'skills', 'test-f020-codex')
   }
 })
 
@@ -1159,11 +1158,9 @@ description: "A skill to test cross-tool sync"
 
     await app.close()
   } finally {
-    // Cleanup
-    fs.rmSync(claudeSkillsDir, { recursive: true, force: true })
-    fs.rmSync(agentsSkillsDir, { recursive: true, force: true })
-    try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
-    try { fs.rmdirSync(path.join(homedir, '.agents', 'skills')) } catch {}
+    // Cleanup — only remove the specific test directories we created
+    cleanTestSkillDir('.claude', 'skills', 'sync-test-skill')
+    cleanTestSkillDir('.agents', 'skills', 'sync-test-skill')
   }
 })
 
@@ -1256,9 +1253,8 @@ tags: []
 
     await app.close()
   } finally {
-    // Cleanup
-    fs.rmSync(claudeSkillsDir, { recursive: true, force: true })
-    try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
+    // Cleanup — only remove the specific test directory we created
+    cleanTestSkillDir('.claude', 'skills', 'diverge-test')
   }
 })
 

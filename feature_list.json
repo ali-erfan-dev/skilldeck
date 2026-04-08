@@ -22,7 +22,11 @@
         "No errors in terminal or DevTools console"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "app.entry"
+      ],
+      "depends_on": []
     },
     {
       "id": "F002",
@@ -38,7 +42,15 @@
         "Verify ~/.skilldeck/deployments.json exists with empty object {}"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "app.entry",
+        "config.json",
+        "deployments.json"
+      ],
+      "depends_on": [
+        "F001"
+      ]
     },
     {
       "id": "F003",
@@ -56,7 +68,13 @@
         "Verify active nav item is visually distinguished"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "app.entry"
+      ],
+      "depends_on": [
+        "F001"
+      ]
     },
     {
       "id": "F004",
@@ -71,7 +89,15 @@
         "Verify empty state message shows when library is empty"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.skills",
+        "ipc.skills",
+        "preload"
+      ],
+      "depends_on": [
+        "F002"
+      ]
     },
     {
       "id": "F005",
@@ -85,7 +111,15 @@
         "Verify it contains valid frontmatter template"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.skills",
+        "ipc.skills",
+        "preload"
+      ],
+      "depends_on": [
+        "F004"
+      ]
     },
     {
       "id": "F006",
@@ -101,7 +135,15 @@
         "Verify the file on disk matches what was typed in the app"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.skills",
+        "ipc.skills",
+        "preload"
+      ],
+      "depends_on": [
+        "F005"
+      ]
     },
     {
       "id": "F007",
@@ -118,7 +160,15 @@
         "Close and reopen the skill — verify changes persisted"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.skills",
+        "ipc.skills",
+        "preload"
+      ],
+      "depends_on": [
+        "F006"
+      ]
     },
     {
       "id": "F008",
@@ -133,7 +183,15 @@
         "Verify the .md file no longer exists on disk"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.skills",
+        "ipc.skills",
+        "preload"
+      ],
+      "depends_on": [
+        "F004"
+      ]
     },
     {
       "id": "F009",
@@ -149,7 +207,13 @@
         "Verify matching skills appear"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.skills"
+      ],
+      "depends_on": [
+        "F004"
+      ]
     },
     {
       "id": "F010",
@@ -165,7 +229,13 @@
         "Click clear — verify all skills return"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.skills"
+      ],
+      "depends_on": [
+        "F004"
+      ]
     },
     {
       "id": "F011",
@@ -182,7 +252,16 @@
         "Verify config.json on disk contains the new project entry"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.projects",
+        "ipc.projects",
+        "preload",
+        "config.json"
+      ],
+      "depends_on": [
+        "F003"
+      ]
     },
     {
       "id": "F012",
@@ -199,7 +278,17 @@
         "Verify deployments.json still contains any prior deployment records for that project"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.projects",
+        "ipc.projects",
+        "preload",
+        "config.json",
+        "deployments.json"
+      ],
+      "depends_on": [
+        "F011"
+      ]
     },
     {
       "id": "F013",
@@ -214,7 +303,16 @@
         "Verify config.json reflects the updated skills path for that project"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.projects",
+        "ipc.projects",
+        "preload",
+        "config.json"
+      ],
+      "depends_on": [
+        "F011"
+      ]
     },
     {
       "id": "F014",
@@ -229,7 +327,16 @@
         "Verify deployments.json contains a record for this project + skill with deployedAt and libraryHash"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "ipc.deployment",
+        "preload",
+        "deployments.json"
+      ],
+      "depends_on": [
+        "F011",
+        "F004"
+      ]
     },
     {
       "id": "F015",
@@ -245,7 +352,16 @@
         "Verify it returns to Current"
       ],
       "passes": true,
-      "notes": "Verified with Playwright - fixed process.env.NODE_ENV issue in Vite renderer"
+      "notes": "Verified with Playwright - fixed process.env.NODE_ENV issue in Vite renderer",
+      "touches": [
+        "ipc.deployment",
+        "preload",
+        "deployments.json",
+        "store.skills"
+      ],
+      "depends_on": [
+        "F014"
+      ]
     },
     {
       "id": "F016",
@@ -263,7 +379,16 @@
         "Verify it returns to Current"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "store.projects",
+        "ipc.deployment",
+        "preload",
+        "deployments.json"
+      ],
+      "depends_on": [
+        "F014"
+      ]
     },
     {
       "id": "F017",
@@ -278,7 +403,15 @@
         "Verify the skill no longer appears in the project's deployed skills list"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "ipc.deployment",
+        "preload",
+        "deployments.json"
+      ],
+      "depends_on": [
+        "F014"
+      ]
     },
     {
       "id": "F018",
@@ -294,7 +427,16 @@
         "Verify skills from the new path are shown"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "config.json",
+        "store.skills",
+        "preload"
+      ],
+      "depends_on": [
+        "F002",
+        "F004"
+      ]
     },
     {
       "id": "F019",
@@ -315,7 +457,13 @@
         "Verify Scan button triggers a fresh scan and picks up newly added skills"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "discovery.scanner"
+      ],
+      "depends_on": [
+        "F004"
+      ]
     },
     {
       "id": "F020",
@@ -334,7 +482,14 @@
         "Clear filter — verify all skills return"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "discovery.scanner",
+        "store.skills"
+      ],
+      "depends_on": [
+        "F019"
+      ]
     },
     {
       "id": "F021",
@@ -355,7 +510,15 @@
         "Verify selecting a single target only writes to that one location"
       ],
       "passes": true,
-      "notes": "Verified with Playwright"
+      "notes": "Verified with Playwright",
+      "touches": [
+        "discovery.scanner",
+        "discovery.sync"
+      ],
+      "depends_on": [
+        "F019",
+        "F014"
+      ]
     },
     {
       "id": "F022",
@@ -373,7 +536,41 @@
         "Verify divergence warning disappears"
       ],
       "passes": true,
-      "notes": "Verified with Playwright - divergence detection, warning badge, diff view, and sync resolution all work"
+      "notes": "Verified with Playwright - divergence detection, warning badge, diff view, and sync resolution all work",
+      "touches": [
+        "discovery.scanner",
+        "discovery.sync",
+        "store.skills"
+      ],
+      "depends_on": [
+        "F019",
+        "F021"
+      ]
+    },
+    {
+      "id": "F023",
+      "phase": 2,
+      "category": "library",
+      "name": "Bulk skill selection and actions",
+      "description": "Library view shows a checkbox on each skill item. A select-all checkbox is visible. Selecting one or more skills shows an action bar displaying the count of selected skills. Clicking select-all checks all skills; clicking again deselects all.",
+      "steps": [
+        "Open Library view with 3+ skills",
+        "Verify each skill row has a visible checkbox",
+        "Verify a select-all checkbox is visible",
+        "Click select-all — verify all checkboxes become checked",
+        "Verify action bar appears showing \"N skills selected\"",
+        "Click select-all again — verify all checkboxes uncheck",
+        "Verify action bar disappears",
+        "Click a single checkbox — verify action bar shows \"1 skill selected\""
+      ],
+      "touches": [
+        "store.skills"
+      ],
+      "depends_on": [
+        "F004"
+      ],
+      "passes": true,
+      "notes": "Built by agent in Session 5 without intake protocol — test passes, feature working. Registered retroactively."
     }
   ]
 }

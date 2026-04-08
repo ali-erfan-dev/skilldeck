@@ -105,7 +105,13 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
           const targetDir = `${project.path}/${project.skillsPath}`
           await window.api.ensureDir(targetDir)
 
-          const sourcePath = `${await window.api.getConfig().then(c => c.libraryPath)}/${skill.filename}`
+          let sourcePath: string
+          if (skill.source === 'skilldeck') {
+            sourcePath = `${await window.api.getConfig().then(c => c.libraryPath)}/${skill.filename}`
+          } else {
+            sourcePath = skill.sourcePath
+          }
+
           const targetPath = `${targetDir}/${skill.filename}`
           await window.api.copyFile(sourcePath, targetPath)
 
@@ -168,31 +174,36 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   return (
     <div data-testid="skill-editor" className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <span className="text-sm text-muted font-mono">{skill.filename}</span>
-        <div className="flex items-center gap-2">
-          <button
-            data-testid="deploy-btn"
-            onClick={() => setShowDeployModal(true)}
-            className="px-3 py-1.5 bg-border hover:bg-muted/30 text-fg text-sm rounded font-medium"
-          >
-            Deploy
-          </button>
-          <button
-            data-testid="save-btn"
-            onClick={handleSave}
-            disabled={saving}
-            className="px-3 py-1.5 bg-accent hover:bg-accent-dim disabled:opacity-50 text-bg text-sm rounded font-medium"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-          <button
-            data-testid="delete-btn"
-            onClick={onDelete}
-            className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm"
-          >
-            Delete
-          </button>
+      <div className="flex flex-col px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm text-muted font-mono">{skill.filename}</span>
+          <div className="flex items-center gap-2">
+            <button
+              data-testid="deploy-btn"
+              onClick={() => setShowDeployModal(true)}
+              className="px-3 py-1.5 bg-border hover:bg-muted/30 text-fg text-sm rounded font-medium"
+            >
+              Deploy
+            </button>
+            <button
+              data-testid="save-btn"
+              onClick={handleSave}
+              disabled={saving}
+              className="px-3 py-1.5 bg-accent hover:bg-accent-dim disabled:opacity-50 text-bg text-sm rounded font-medium"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              data-testid="delete-btn"
+              onClick={onDelete}
+              className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+        <div className="text-xs text-muted/50 font-mono truncate">
+          {skill.sourcePath || `${skill.source === 'skilldeck' ? 'Library' : skill.source}: ${skill.filename}`}
         </div>
       </div>
 
