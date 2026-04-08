@@ -68,6 +68,10 @@ declare global {
       readVersion: (skillName: string, versionId: string) => Promise<{ id: string; timestamp: string; hash: string; content: string }>
       saveVersion: (skillName: string, content: string) => Promise<{ id: string; timestamp: string; hash: string; content: string }>
       rollbackVersion: (skillName: string, versionId: string) => Promise<{ success: boolean; content: string }>
+
+      // Git sync
+      gitStatus: () => Promise<{ isGitRepo: boolean; libraryPath: string }>
+      gitSync: () => Promise<{ success: boolean; results: { action: string; success: boolean; message?: string }[] }>
     }
   }
 }

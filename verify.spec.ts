@@ -23,6 +23,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
+import { execSync } from 'child_process'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -1840,5 +1841,68 @@ test('F028 - Symlink deployment mode', async () => {
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true, force: true })
     }
+  }
+})
+
+// ─── F030: Git-based Library Sync ──────────────────────────────────────────
+
+test('F030 - Git sync button appears for git repos', async () => {
+  cleanSkilldeck()
+  seedSkill('git-test', makeSkillContent('Git Test', 'Test git sync', ['test']))
+
+  // Initialize a git repo in the library
+  try {
+    execSync('git init', { cwd: LIBRARY_DIR, timeout: 5000 })
+  } catch {
+    // Git not available — skip test
+    return
+  }
+
+  const { app, window } = await launchApp()
+
+  try {
+    // Verify Git Sync button appears
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(1000)
+
+    const syncBtn = window.locator('[data-testid="git-sync-btn"]')
+    await expect(syncBtn).toBeVisible({ timeout: 3000 })
+
+    // Verify button text
+    await expect(syncBtn).toContainText('Git Sync')
+
+    await app.close()
+  } finally {
+    // Clean up git repo from library
+    const gitDir = path.join(LIBRARY_DIR, '.git')
+    if (fs.existsSync(gitDir)) {
+      fs.rmSync(gitDir, { recursive: true, force: true })
+    }
+  }
+})
+
+test('F030 - Git sync button hidden for non-git library', async () => {
+  cleanSkilldeck()
+  seedSkill('no-git-test', makeSkillContent('No Git Test', 'No git', ['test']))
+
+  // Make sure library is NOT a git repo
+  const gitDir = path.join(LIBRARY_DIR, '.git')
+  if (fs.existsSync(gitDir)) {
+    fs.rmSync(gitDir, { recursive: true, force: true })
+  }
+
+  const { app, window } = await launchApp()
+
+  try {
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(1000)
+
+    // Git Sync button should NOT be visible
+    const syncBtn = window.locator('[data-testid="git-sync-btn"]')
+    expect(await syncBtn.count()).toBe(0)
+
+    await app.close()
+  } finally {
+    // No cleanup needed
   }
 })

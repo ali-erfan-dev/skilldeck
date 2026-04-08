@@ -49,4 +49,8 @@ contextBridge.exposeInMainWorld('api', {
   readVersion: (skillName: string, versionId: string) => ipcRenderer.invoke('versions:read', skillName, versionId),
   saveVersion: (skillName: string, content: string) => ipcRenderer.invoke('versions:save', skillName, content),
   rollbackVersion: (skillName: string, versionId: string) => ipcRenderer.invoke('versions:rollback', skillName, versionId),
+
+  // Git sync
+  gitStatus: () => ipcRenderer.invoke('git:status'),
+  gitSync: () => ipcRenderer.invoke('git:sync'),
 })

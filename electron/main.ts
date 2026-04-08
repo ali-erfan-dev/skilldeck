@@ -786,6 +786,67 @@ ipcMain.handle('promote:to-library', (_event, skillName: string, projectSkillPat
   return { success: true, libraryPath: libFilePath, hash }
 })
 
+// IPC: Git sync — check if library is a git repo
+ipcMain.handle('git:status', () => {
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
+  const gitDir = path.join(libPath, '.git')
+  return { isGitRepo: fs.existsSync(gitDir), libraryPath: libPath }
+})
+
+// IPC: Git sync — pull and push
+const { execSync } = require('child_process')
+
+ipcMain.handle('git:sync', () => {
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
+  const gitDir = path.join(libPath, '.git')
+
+  if (!fs.existsSync(gitDir)) {
+    return { success: false, error: 'Library is not a Git repository' }
+  }
+
+  const results: { action: string; success: boolean; message?: string }[] = []
+
+  // Pull
+  try {
+    const pullOutput = execSync('git pull', { cwd: libPath, encoding: 'utf8', timeout: 30000 })
+    results.push({ action: 'pull', success: true, message: pullOutput.trim() })
+  } catch (err: any) {
+    const msg = err.stderr?.toString().trim() || err.message
+    if (msg.includes('merge conflict') || msg.includes('CONFLICT')) {
+      results.push({ action: 'pull', success: false, message: 'Merge conflict detected' })
+    } else if (msg.includes('not a git repository') || msg.includes('ENOENT')) {
+      results.push({ action: 'pull', success: false, message: 'Git not available or not a repo' })
+    } else {
+      results.push({ action: 'pull', success: false, message: msg.substring(0, 200) })
+    }
+  }
+
+  // Push
+  try {
+    const pushOutput = execSync('git push', { cwd: libPath, encoding: 'utf8', timeout: 30000 })
+    results.push({ action: 'push', success: true, message: pushOutput.trim() })
+  } catch (err: any) {
+    const msg = err.stderr?.toString().trim() || err.message
+    if (msg.includes('no upstream') || msg.includes('has no upstream')) {
+      // Try push -u origin main
+      try {
+        const pushOutput2 = execSync('git push -u origin main', { cwd: libPath, encoding: 'utf8', timeout: 30000 })
+        results.push({ action: 'push', success: true, message: pushOutput2.trim() })
+      } catch (err2: any) {
+        results.push({ action: 'push', success: false, message: err2.stderr?.toString().trim().substring(0, 200) || err2.message })
+      }
+    } else {
+      results.push({ action: 'push', success: false, message: msg.substring(0, 200) })
+    }
+  }
+
+  return { success: results.every(r => r.success), results }
+})
+
 // IPC: Directory picker
 ipcMain.handle('dialog:openDirectory', async () => {
   const { dialog } = await import('electron')

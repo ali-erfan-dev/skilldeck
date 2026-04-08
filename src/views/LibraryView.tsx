@@ -43,6 +43,18 @@ export default function LibraryView() {
   const selectedSources = useSkillStore(state => state.selectedSources)
   const loading = useSkillStore(state => state.loading)
   const scanning = useSkillStore(state => state.scanning)
+  const [isGitRepo, setIsGitRepo] = useState(false)
+  const [gitSyncing, setGitSyncing] = useState(false)
+  const [gitMessage, setGitMessage] = useState<string | null>(null)
+
+  // Check if library is a git repo on mount
+  useEffect(() => {
+    if (window.api.gitStatus) {
+      window.api.gitStatus().then(status => {
+        setIsGitRepo(status.isGitRepo)
+      }).catch(() => {})
+    }
+  }, [])
 
   const {
     loadSkills,
@@ -356,6 +368,33 @@ export default function LibraryView() {
           >
             {scanning ? '...' : 'Scan'}
           </button>
+          {isGitRepo && (
+            <button
+              data-testid="git-sync-btn"
+              onClick={async () => {
+                if (!window.api.gitSync) return
+                setGitSyncing(true)
+                setGitMessage(null)
+                try {
+                  const result = await window.api.gitSync()
+                  const messages = result.results.map(r => `${r.action}: ${r.success ? 'OK' : r.message}`).join(' | ')
+                  setGitMessage(messages)
+                  await loadAllSkills()
+                } catch (err: any) {
+                  setGitMessage(`Error: ${err.message}`)
+                } finally {
+                  setGitSyncing(false)
+                }
+              }}
+              disabled={gitSyncing}
+              className="px-3 py-1.5 bg-border hover:bg-surface text-fg rounded text-sm transition-colors disabled:opacity-50"
+            >
+              {gitSyncing ? 'Syncing...' : 'Git Sync'}
+            </button>
+          )}
+          {gitMessage && (
+            <span className="text-xs text-muted max-w-xs truncate" title={gitMessage}>{gitMessage}</span>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto relative">

@@ -771,8 +771,8 @@
         "F004",
         "F022"
       ],
-      "passes": false,
-      "notes": "No cloud backend. Pure Git. Only Phase 3 feature with no Phase 3 dependencies — can be built any time after Phase 2 is complete. Highest value-to-complexity ratio in Phase 3."
+      "passes": true,
+      "notes": "Verified with Playwright — Git Sync button appears when library is a git repo, hidden when not. Pull and push via git CLI. Graceful error handling for conflicts and missing git."
     },
     {
       "id": "F031",
