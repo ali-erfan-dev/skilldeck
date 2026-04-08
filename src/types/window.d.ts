@@ -76,7 +76,7 @@ declare global {
       searchSemantic: (query: string) => Promise<{ filename: string; name: string; description: string; score: number }[]>
 
       // Community registry
-      registrySearch: (query: string) => Promise<RegistrySkill[]>
+      registrySearch: (query: string, options?: { sort?: string; page?: number; tags?: string }) => Promise<{ skills: RegistrySkill[]; total: number; hasMore: boolean }>
       registryInstall: (skillUrl: string) => Promise<{ success: boolean; path?: string; name?: string; error?: string }>
       registryPing: () => Promise<{ online: boolean }>
     }

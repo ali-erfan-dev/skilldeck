@@ -63,12 +63,17 @@ export default function LibraryView() {
     categories,
     installing: installingSkill,
     conflict,
+    sortBy,
+    totalResults,
+    hasMore,
     handleSearchChange,
     selectCategory,
     selectSkill: selectRegistrySkill,
     clearSelection: clearRegistrySelection,
     install: installRegistrySkill,
     resolveConflict,
+    changeSort,
+    loadMore,
   } = useRegistry()
 
   // Check if library is a git repo on mount
@@ -682,6 +687,25 @@ export default function LibraryView() {
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto p-4">
+              {/* Sort control and result count */}
+              {registrySkills.length > 0 && (
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs text-muted">{totalResults} skills</span>
+                  <div className="flex gap-1">
+                    {['downloads', 'stars', 'recent'].map(sort => (
+                      <button
+                        key={sort}
+                        onClick={() => changeSort(sort)}
+                        className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                          sortBy === sort ? 'bg-accent text-bg' : 'bg-border text-muted hover:text-fg'
+                        }`}
+                      >
+                        {sort === 'downloads' ? 'Downloads' : sort === 'stars' ? 'Stars' : 'Recent'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {registrySkills.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-muted text-sm">
@@ -689,16 +713,29 @@ export default function LibraryView() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                  {registrySkills.map(skill => (
-                    <RegistryCard
-                      key={skill.id || skill.slug || skill.name}
-                      skill={skill}
-                      isInstalled={skills.some(s => s.name.toLowerCase() === skill.name.toLowerCase())}
-                      onClick={() => selectRegistrySkill(skill)}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                    {registrySkills.map(skill => (
+                      <RegistryCard
+                        key={skill.id || skill.slug || skill.name}
+                        skill={skill}
+                        isInstalled={skills.some(s => s.name.toLowerCase() === skill.name.toLowerCase())}
+                        onClick={() => selectRegistrySkill(skill)}
+                      />
+                    ))}
+                  </div>
+                  {hasMore && (
+                    <div className="flex justify-center py-4">
+                      <button
+                        onClick={loadMore}
+                        disabled={registryLoading}
+                        className="px-4 py-2 text-sm bg-border hover:bg-surface text-fg rounded transition-colors disabled:opacity-50"
+                      >
+                        {registryLoading ? 'Loading...' : 'Load more'}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )

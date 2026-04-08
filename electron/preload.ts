@@ -56,4 +56,9 @@ contextBridge.exposeInMainWorld('api', {
 
   // Semantic search
   searchSemantic: (query: string) => ipcRenderer.invoke('search:semantic', query),
+
+  // Community registry
+  registrySearch: (query: string, options?: { sort?: string; page?: number; tags?: string }) => ipcRenderer.invoke('registry:search', query, options),
+  registryInstall: (skillUrl: string) => ipcRenderer.invoke('registry:install', skillUrl),
+  registryPing: () => ipcRenderer.invoke('registry:ping'),
 })

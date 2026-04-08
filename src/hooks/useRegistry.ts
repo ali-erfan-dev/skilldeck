@@ -19,32 +19,47 @@ export function useRegistry() {
   const [categories] = useState<string[]>(FALLBACK_CATEGORIES)
   const [installing, setInstalling] = useState<string | null>(null)
   const [conflict, setConflict] = useState<ConflictInfo | null>(null)
+  const [sortBy, setSortBy] = useState<string>('downloads')
+  const [totalResults, setTotalResults] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [page, setPage] = useState(1)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadSkills = useSkillStore(state => state.loadSkills)
+
+  const doSearch = useCallback(async (query: string, sort: string, pageNum: number, append: boolean, tags?: string) => {
+    setLoading(true)
+    try {
+      const result = await window.api.registrySearch(query || '', { sort, page: pageNum, tags })
+      if (append) {
+        setSkills(prev => [...prev, ...result.skills])
+      } else {
+        setSkills(result.skills)
+      }
+      setTotalResults(result.total)
+      setHasMore(result.hasMore)
+    } catch {
+      if (!append) setSkills([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     window.api.registryPing().then(status => {
       setOnline(status.online)
       if (status.online) {
-        search('')
+        doSearch('', sortBy, 1, false)
       }
     }).catch(() => setOnline(false))
-  }, [])
+  }, [doSearch, sortBy])
 
   const search = useCallback((query: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true)
-      try {
-        const results = await window.api.registrySearch(query || '*')
-        setSkills(results)
-      } catch {
-        setSkills([])
-      } finally {
-        setLoading(false)
-      }
+    debounceRef.current = setTimeout(() => {
+      setPage(1)
+      doSearch(query, sortBy, 1, false)
     }, 300)
-  }, [])
+  }, [doSearch, sortBy])
 
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query)
@@ -55,16 +70,32 @@ export function useRegistry() {
   const selectCategory = useCallback((cat: string | null) => {
     setSelectedCategory(cat)
     setSearchQuery('')
+    setPage(1)
     if (cat) {
-      setLoading(true)
-      window.api.registrySearch(cat).then(results => {
-        setSkills(results)
-      }).catch(() => setSkills([]))
-      .finally(() => setLoading(false))
+      doSearch(cat, sortBy, 1, false, cat)
     } else {
-      search('')
+      doSearch('', sortBy, 1, false)
     }
-  }, [search])
+  }, [doSearch, sortBy])
+
+  const changeSort = useCallback((sort: string) => {
+    setSortBy(sort)
+    setPage(1)
+    if (selectedCategory) {
+      doSearch(selectedCategory, sort, 1, false, selectedCategory)
+    } else if (searchQuery) {
+      doSearch(searchQuery, sort, 1, false)
+    } else {
+      doSearch('', sort, 1, false)
+    }
+  }, [doSearch, selectedCategory, searchQuery])
+
+  const loadMore = useCallback(() => {
+    const nextPage = page + 1
+    setPage(nextPage)
+    const query = selectedCategory || searchQuery || ''
+    doSearch(query, sortBy, nextPage, true, selectedCategory || undefined)
+  }, [doSearch, page, sortBy, selectedCategory, searchQuery])
 
   const selectSkill = useCallback((skill: RegistrySkill) => {
     setSelectedSkill(skill)
@@ -139,11 +170,16 @@ export function useRegistry() {
     categories,
     installing,
     conflict,
+    sortBy,
+    totalResults,
+    hasMore,
     handleSearchChange,
     selectCategory,
     selectSkill,
     clearSelection,
     install,
     resolveConflict,
+    changeSort,
+    loadMore,
   }
 }

@@ -787,13 +787,18 @@ ipcMain.handle('promote:to-library', (_event, skillName: string, projectSkillPat
 })
 
 // IPC: Community registry — search for skills
-ipcMain.handle('registry:search', async (_event, query: string) => {
+ipcMain.handle('registry:search', async (_event, query: string, options?: { sort?: string; page?: number; tags?: string }) => {
   // Search the SkillsHub registry
   try {
     const https = require('https')
+    const sort = options?.sort || 'downloads'
+    const page = options?.page || 1
+    const tags = options?.tags
 
     return new Promise((resolve) => {
-      const url = `https://skillshub.wtf/api/v1/skills/search?q=${encodeURIComponent(query)}&limit=20`
+      const params = new URLSearchParams({ q: query || '', limit: '50', sort, page: String(page) })
+      if (tags) params.set('tags', tags)
+      const url = `https://skillshub.wtf/api/v1/skills/search?${params.toString()}`
 
       https.get(url, { timeout: 10000 }, (res: any) => {
         let data = ''
@@ -813,19 +818,19 @@ ipcMain.handle('registry:search', async (_event, query: string) => {
               downloads: s.repo?.downloadCount,
               version: undefined,
             }))
-            resolve(skills)
+            resolve({ skills, total: parsed.total || 0, hasMore: parsed.hasMore || false })
           } catch {
-            resolve([])
+            resolve({ skills: [], total: 0, hasMore: false })
           }
         })
       }).on('error', () => {
-        resolve([])
+        resolve({ skills: [], total: 0, hasMore: false })
       }).on('timeout', () => {
-        resolve([])
+        resolve({ skills: [], total: 0, hasMore: false })
       })
     })
   } catch {
-    return []
+    return { skills: [], total: 0, hasMore: false }
   }
 })
 
