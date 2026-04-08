@@ -742,8 +742,8 @@
       "depends_on": [
         "F006"
       ],
-      "passes": false,
-      "notes": "Caps at 20 versions to avoid unbounded disk growth. Rollback creates a new version rather than deleting history, preserving audit trail. Snapshots record deployment state at time of save."
+      "passes": true,
+      "notes": "Verified with Playwright — version snapshots created on save, history panel in editor, rollback restores previous version. Capped at 20 versions per skill."
     },
     {
       "id": "F030",

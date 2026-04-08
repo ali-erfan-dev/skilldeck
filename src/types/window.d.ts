@@ -62,6 +62,12 @@ declare global {
 
       // Bidirectional sync
       promoteToLibrary: (skillName: string, projectSkillPath: string) => Promise<{ success: boolean; libraryPath: string; hash: string }>
+
+      // Version history
+      listVersions: (skillName: string) => Promise<{ id: string; timestamp: string; hash: string }[]>
+      readVersion: (skillName: string, versionId: string) => Promise<{ id: string; timestamp: string; hash: string; content: string }>
+      saveVersion: (skillName: string, content: string) => Promise<{ id: string; timestamp: string; hash: string; content: string }>
+      rollbackVersion: (skillName: string, versionId: string) => Promise<{ success: boolean; content: string }>
     }
   }
 }

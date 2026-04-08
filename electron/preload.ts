@@ -43,4 +43,10 @@ contextBridge.exposeInMainWorld('api', {
 
   // Bidirectional sync
   promoteToLibrary: (skillName: string, projectSkillPath: string) => ipcRenderer.invoke('promote:to-library', skillName, projectSkillPath),
+
+  // Version history
+  listVersions: (skillName: string) => ipcRenderer.invoke('versions:list', skillName),
+  readVersion: (skillName: string, versionId: string) => ipcRenderer.invoke('versions:read', skillName, versionId),
+  saveVersion: (skillName: string, content: string) => ipcRenderer.invoke('versions:save', skillName, content),
+  rollbackVersion: (skillName: string, versionId: string) => ipcRenderer.invoke('versions:rollback', skillName, versionId),
 })

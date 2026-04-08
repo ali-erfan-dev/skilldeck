@@ -626,6 +626,106 @@ ipcMain.handle('deploy:preview', (_event, projectId: string, skillName: string, 
   }
 })
 
+// IPC: Version history — list versions for a skill
+ipcMain.handle('versions:list', (_event, skillName: string) => {
+  const versionsDir = path.join(getSkilldeckDir(), 'versions', skillName)
+  if (!fs.existsSync(versionsDir)) {
+    return []
+  }
+
+  const versions: { id: string; timestamp: string; hash: string }[] = []
+  const entries = fs.readdirSync(versionsDir).filter(f => f.endsWith('.json')).sort().reverse()
+  for (const entry of entries) {
+    try {
+      const data = JSON.parse(fs.readFileSync(path.join(versionsDir, entry), 'utf8'))
+      versions.push(data)
+    } catch { /* skip malformed */ }
+  }
+
+  // Cap at 20 versions — prune oldest
+  if (versions.length > 20) {
+    const toDelete = entries.slice(20)
+    for (const f of toDelete) {
+      fs.unlinkSync(path.join(versionsDir, f))
+    }
+    versions.splice(20)
+  }
+
+  return versions
+})
+
+// IPC: Version history — read a specific version
+ipcMain.handle('versions:read', (_event, skillName: string, versionId: string) => {
+  const versionPath = path.join(getSkilldeckDir(), 'versions', skillName, `${versionId}.json`)
+  if (!fs.existsSync(versionPath)) {
+    throw new Error(`Version ${versionId} not found for skill ${skillName}`)
+  }
+  return JSON.parse(fs.readFileSync(versionPath, 'utf8'))
+})
+
+// IPC: Version history — save a version snapshot
+ipcMain.handle('versions:save', (_event, skillName: string, content: string) => {
+  const versionsDir = path.join(getSkilldeckDir(), 'versions', skillName)
+  if (!fs.existsSync(versionsDir)) {
+    fs.mkdirSync(versionsDir, { recursive: true })
+  }
+
+  const id = `v${Date.now()}`
+  const hash = crypto.createHash('md5').update(content).digest('hex')
+  const version = {
+    id,
+    timestamp: new Date().toISOString(),
+    hash,
+    content,
+  }
+
+  fs.writeFileSync(path.join(versionsDir, `${id}.json`), JSON.stringify(version, null, 2))
+
+  // Prune to 20 versions
+  const entries = fs.readdirSync(versionsDir).filter(f => f.endsWith('.json')).sort()
+  if (entries.length > 20) {
+    const toDelete = entries.slice(0, entries.length - 20)
+    for (const f of toDelete) {
+      fs.unlinkSync(path.join(versionsDir, f))
+    }
+  }
+
+  return version
+})
+
+// IPC: Version history — rollback to a specific version
+ipcMain.handle('versions:rollback', (_event, skillName: string, versionId: string) => {
+  const versionPath = path.join(getSkilldeckDir(), 'versions', skillName, `${versionId}.json`)
+  if (!fs.existsSync(versionPath)) {
+    throw new Error(`Version ${versionId} not found for skill ${skillName}`)
+  }
+
+  const version = JSON.parse(fs.readFileSync(versionPath, 'utf8'))
+
+  // Save current as a new version first (for audit trail)
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
+  const currentPath = path.join(libPath, `${skillName}.md`)
+
+  if (fs.existsSync(currentPath)) {
+    const currentContent = fs.readFileSync(currentPath, 'utf8')
+    const currentHash = crypto.createHash('md5').update(currentContent).digest('hex')
+    const currentVersion = {
+      id: `v${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      hash: currentHash,
+      content: currentContent,
+    }
+    const versionsDir = path.join(getSkilldeckDir(), 'versions', skillName)
+    fs.writeFileSync(path.join(versionsDir, `${currentVersion.id}.json`), JSON.stringify(currentVersion, null, 2))
+  }
+
+  // Write the rollback version as current
+  fs.writeFileSync(currentPath, version.content)
+
+  return { success: true, content: version.content }
+})
+
 // IPC: Promote project version of a skill back to library
 ipcMain.handle('promote:to-library', (_event, skillName: string, projectSkillPath: string) => {
   ensureConfigExists()

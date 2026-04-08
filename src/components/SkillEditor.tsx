@@ -75,6 +75,9 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   } | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [newTag, setNewTag] = useState('')
+  const [showHistory, setShowHistory] = useState(false)
+  const [versions, setVersions] = useState<{ id: string; timestamp: string; hash: string }[]>([])
+  const [selectedVersion, setSelectedVersion] = useState<{ id: string; timestamp: string; hash: string; content: string } | null>(null)
 
   // Detect available tools when modal opens
   useEffect(() => {
@@ -97,6 +100,11 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
     setSaving(true)
     const content = buildSkillContent(parsed)
     await window.api.writeSkill(skill.filename, content)
+    // Save version snapshot
+    const skillName = skill.filename.replace('.md', '')
+    if (window.api.saveVersion) {
+      await window.api.saveVersion(skillName, content)
+    }
     // Reload skills to update sidebar
     await loadAllSkills()
     setSaving(false)
@@ -226,6 +234,21 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
               Deploy
             </button>
             <button
+              data-testid="history-btn"
+              onClick={async () => {
+                const skillName = skill.filename.replace('.md', '')
+                if (window.api.listVersions) {
+                  const v = await window.api.listVersions(skillName)
+                  setVersions(v)
+                }
+                setShowHistory(!showHistory)
+                setSelectedVersion(null)
+              }}
+              className="px-3 py-1.5 bg-border hover:bg-muted/30 text-fg text-sm rounded font-medium"
+            >
+              History
+            </button>
+            <button
               data-testid="save-btn"
               onClick={handleSave}
               disabled={saving}
@@ -308,6 +331,70 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
           placeholder="Skill content in markdown..."
         />
       </div>
+
+      {/* Version History Panel */}
+      {showHistory && (
+        <div data-testid="history-panel" className="border-t border-border p-4 max-h-64 overflow-y-auto">
+          <h4 className="text-sm font-medium text-fg mb-2">Version History</h4>
+          {versions.length === 0 ? (
+            <p className="text-xs text-muted">No versions saved yet. Save the skill to create a version snapshot.</p>
+          ) : (
+            <div className="space-y-1">
+              {versions.map(v => (
+                <button
+                  key={v.id}
+                  data-testid={`version-item-${v.id}`}
+                  onClick={async () => {
+                    if (window.api.readVersion) {
+                      const version = await window.api.readVersion(skill.filename.replace('.md', ''), v.id)
+                      setSelectedVersion(version)
+                    }
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded border ${
+                    selectedVersion?.id === v.id ? 'border-accent bg-accent/10' : 'border-border hover:border-muted'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-fg">{new Date(v.timestamp).toLocaleString()}</span>
+                    <span className="text-xs text-muted font-mono">{v.hash.substring(0, 8)}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          {selectedVersion && (
+            <div className="mt-3">
+              <div className="flex justify-between items-center mb-2">
+                <h5 className="text-xs text-muted">Version from {new Date(selectedVersion.timestamp).toLocaleString()}</h5>
+                <button
+                  data-testid="rollback-btn"
+                  onClick={async () => {
+                    if (window.api.rollbackVersion) {
+                      const result = await window.api.rollbackVersion(skill.filename.replace('.md', ''), selectedVersion.id)
+                      if (result.success) {
+                        setParsed(parseSkillContent(result.content))
+                        await loadAllSkills()
+                        setSelectedVersion(null)
+                        // Refresh versions
+                        if (window.api.listVersions) {
+                          const v = await window.api.listVersions(skill.filename.replace('.md', ''))
+                          setVersions(v)
+                        }
+                      }
+                    }
+                  }}
+                  className="px-2 py-1 text-xs bg-accent hover:bg-accent-dim text-bg rounded font-medium"
+                >
+                  Rollback
+                </button>
+              </div>
+              <pre className="p-2 text-xs font-mono text-fg bg-bg border border-border rounded max-h-32 overflow-auto">
+                {selectedVersion.content}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Deploy Modal */}
       {showDeployModal && (
