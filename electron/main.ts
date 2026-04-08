@@ -786,6 +786,121 @@ ipcMain.handle('promote:to-library', (_event, skillName: string, projectSkillPat
   return { success: true, libraryPath: libFilePath, hash }
 })
 
+// IPC: Community registry — search for skills
+ipcMain.handle('registry:search', async (_event, query: string) => {
+  // Search the SkillsHub registry
+  try {
+    const https = require('https')
+
+    return new Promise((resolve) => {
+      const url = `https://skillshub.wtf/api/v1/skills/search?q=${encodeURIComponent(query)}&limit=20`
+
+      https.get(url, { timeout: 10000 }, (res: any) => {
+        let data = ''
+        res.on('data', (chunk: any) => { data += chunk })
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data)
+            // Map SkillsHub response to RegistrySkill shape
+            const skills = (parsed.data || []).map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              slug: s.slug,
+              description: s.description || '',
+              author: s.owner?.username || s.repo?.githubOwner || '',
+              tags: s.tags || [],
+              url: `https://skillshub.wtf/${s.repo?.githubOwner || s.owner?.username}/${s.repo?.githubRepoName || 'repo'}/${s.slug}?format=md`,
+              downloads: s.repo?.downloadCount,
+              version: undefined,
+            }))
+            resolve(skills)
+          } catch {
+            resolve([])
+          }
+        })
+      }).on('error', () => {
+        resolve([])
+      }).on('timeout', () => {
+        resolve([])
+      })
+    })
+  } catch {
+    return []
+  }
+})
+
+// IPC: Community registry — install a skill
+ipcMain.handle('registry:install', async (_event, skillUrl: string) => {
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
+
+  try {
+    const https = require('https')
+    const http = require('http')
+    const client = skillUrl.startsWith('https') ? https : http
+
+    return new Promise((resolve) => {
+      client.get(skillUrl, { timeout: 15000 }, (res: any) => {
+        let data = ''
+        res.on('data', (chunk: any) => { data += chunk })
+        res.on('end', () => {
+          try {
+            // Try to parse as JSON (some registries return skill metadata)
+            // If it's raw markdown, save it directly
+            if (data.trim().startsWith('{')) {
+              const parsed = JSON.parse(data)
+              const content = parsed.content || parsed.body || parsed.markdown || data
+              const filename = parsed.slug ? `${parsed.slug}.md` : `skill-${Date.now()}.md`
+              const filePath = path.join(libPath, filename)
+              fs.writeFileSync(filePath, content)
+              resolve({ success: true, path: filePath, name: parsed.name || filename })
+            } else {
+              // Raw markdown content
+              const nameMatch = data.match(/^name:\s*["']?(.+?)["']?\s*$/m)
+              const name = nameMatch ? nameMatch[1].replace(/[^a-zA-Z0-9-]/g, '-') : `skill-${Date.now()}`
+              const filename = `${name}.md`
+              const filePath = path.join(libPath, filename)
+              fs.writeFileSync(filePath, data)
+              resolve({ success: true, path: filePath, name })
+            }
+          } catch {
+            // Save raw content as-is
+            const filename = `skill-${Date.now()}.md`
+            const filePath = path.join(libPath, filename)
+            fs.writeFileSync(filePath, data)
+            resolve({ success: true, path: filePath, name: filename })
+          }
+        })
+      }).on('error', (err: any) => {
+        resolve({ success: false, error: err.message })
+      }).on('timeout', () => {
+        resolve({ success: false, error: 'Request timed out' })
+      })
+    })
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+// IPC: Community registry — check connectivity
+ipcMain.handle('registry:ping', async () => {
+  try {
+    const https = require('https')
+    return new Promise((resolve) => {
+      https.get('https://skillshub.wtf/api/v1/health', { timeout: 5000 }, (res: any) => {
+        resolve({ online: res.statusCode === 200 })
+      }).on('error', () => {
+        resolve({ online: false })
+      }).on('timeout', () => {
+        resolve({ online: false })
+      })
+    })
+  } catch {
+    return { online: false }
+  }
+})
+
 // IPC: Semantic search — generate embeddings and search
 ipcMain.handle('search:semantic', async (_event, query: string) => {
   ensureConfigExists()
