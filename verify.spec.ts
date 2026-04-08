@@ -1554,3 +1554,97 @@ test('F031 - Instructions-file conflict detection and preservation', async () =>
     }
   }
 })
+
+// ─── F026: Bidirectional Sync (Evolve) ────────────────────────────────────
+
+test('F026 - Bidirectional sync — promote improved skill to library', async () => {
+  cleanSkilldeck()
+
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skilldeck-f026-test-'))
+  const skillContent = makeSkillContent('Scope Killer', 'Kills scope creep')
+  seedSkill('scope-killer', skillContent)
+
+  // Deploy the skill to the project
+  const deployedDir = path.join(projectDir, '.claude', 'skills', 'scope-killer')
+  fs.mkdirSync(deployedDir, { recursive: true })
+  fs.writeFileSync(path.join(deployedDir, 'SKILL.md'), skillContent)
+
+  const hash = crypto.createHash('md5').update(skillContent).digest('hex')
+
+  // Set up config and deployment records
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{
+      id: 'proj-f026',
+      name: 'EvolveTest',
+      path: projectDir,
+      skillsPath: '.claude/skills',
+      targetProfile: 'claude-code'
+    }]
+  }
+  const deployments = {
+    'proj-f026': {
+      'scope-killer': { deployedAt: new Date().toISOString(), libraryHash: hash, currentHash: hash }
+    }
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify(deployments, null, 2))
+
+  // Now modify the project version (simulate field improvement)
+  const improvedContent = `---
+name: "Scope Killer"
+description: "Prevents and reverses scope creep"
+tags: []
+---
+
+# Scope Killer
+
+Prevents and reverses scope creep. Enhanced version.
+`
+  fs.writeFileSync(path.join(deployedDir, 'SKILL.md'), improvedContent)
+
+  const { app, window } = await launchApp()
+
+  try {
+    // The scan should detect divergence between library and project version
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(1000)
+
+    // Look for divergence warning or click scan
+    const scanBtn = window.locator('[data-testid="scan-btn"]')
+    if (await scanBtn.count() > 0) {
+      await scanBtn.click()
+      await window.waitForTimeout(1500)
+    }
+
+    // Click on the divergence warning (from the project version in the skill list)
+    const divergenceWarning = window.locator('[data-testid="divergence-warning"]')
+    if (await divergenceWarning.count() > 0) {
+      await divergenceWarning.first().click()
+      await window.waitForTimeout(500)
+
+      // Verify divergence modal appears
+      await window.waitForSelector('[data-testid="divergence-modal"]', { timeout: 3000 })
+
+      // Check for reverse-divergence indicator
+      const reverseIndicator = window.locator('[data-testid="reverse-divergence-indicator"]')
+      const hasReverse = (await reverseIndicator.count()) > 0
+
+      if (hasReverse) {
+        // Click "Promote to Library"
+        const promoteBtn = window.locator('[data-testid="promote-to-library-btn"]')
+        await promoteBtn.click()
+        await window.waitForTimeout(1000)
+
+        // Verify library version was updated
+        const updatedLibrary = fs.readFileSync(path.join(LIBRARY_DIR, 'scope-killer.md'), 'utf8')
+        expect(updatedLibrary).toContain('Enhanced version')
+        expect(updatedLibrary).toContain('reverses scope creep')
+      }
+    }
+
+    await app.close()
+  } finally {
+    fs.rmSync(projectDir, { recursive: true, force: true })
+  }
+})

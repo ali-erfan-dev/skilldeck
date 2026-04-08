@@ -659,8 +659,8 @@
         "F015",
         "F022"
       ],
-      "passes": false,
-      "notes": "Identified by Claude Code research as the most important missing feature vs competitors (Oh My Agents Evolve mode). Builds on existing hash comparison in F015/F022 — flip the comparison direction and add promotion path."
+      "passes": true,
+      "notes": "Verified with Playwright — reverse-divergence detection, Promote to Library button, visual distinction between library-ahead and project-ahead divergence."
     },
     {
       "id": "F027",

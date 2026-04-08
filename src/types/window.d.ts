@@ -59,6 +59,9 @@ declare global {
         skillName?: string
       }>
       migrateConfig: () => Promise<Config>
+
+      // Bidirectional sync
+      promoteToLibrary: (skillName: string, projectSkillPath: string) => Promise<{ success: boolean; libraryPath: string; hash: string }>
     }
   }
 }

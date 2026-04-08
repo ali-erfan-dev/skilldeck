@@ -40,4 +40,7 @@ contextBridge.exposeInMainWorld('api', {
   undeployProfile: (projectId: string, skillName: string, profileId: string) => ipcRenderer.invoke('undeploy:profile', projectId, skillName, profileId),
   migrateConfig: () => ipcRenderer.invoke('config:migrate'),
   deployPreview: (projectId: string, skillName: string, skillContent: string, profileId: string) => ipcRenderer.invoke('deploy:preview', projectId, skillName, skillContent, profileId),
+
+  // Bidirectional sync
+  promoteToLibrary: (skillName: string, projectSkillPath: string) => ipcRenderer.invoke('promote:to-library', skillName, projectSkillPath),
 })

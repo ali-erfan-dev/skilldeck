@@ -626,6 +626,44 @@ ipcMain.handle('deploy:preview', (_event, projectId: string, skillName: string, 
   }
 })
 
+// IPC: Promote project version of a skill back to library
+ipcMain.handle('promote:to-library', (_event, skillName: string, projectSkillPath: string) => {
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
+
+  if (!fs.existsSync(projectSkillPath)) {
+    throw new Error(`Project skill file not found: ${projectSkillPath}`)
+  }
+
+  const content = fs.readFileSync(projectSkillPath, 'utf8')
+  const libFilePath = path.join(libPath, `${skillName}.md`)
+
+  if (!fs.existsSync(libFilePath)) {
+    throw new Error(`Library skill file not found: ${libFilePath}`)
+  }
+
+  // Write the project version to the library
+  fs.writeFileSync(libFilePath, content)
+
+  // Compute new hash
+  const hash = crypto.createHash('md5').update(content).digest('hex')
+
+  // Update deployment records — find all deployments of this skill and update hashes
+  const deploymentsPath = getDeploymentsPath()
+  const deployments = JSON.parse(fs.readFileSync(deploymentsPath, 'utf8'))
+  for (const [_projectId, projectDeps] of Object.entries(deployments)) {
+    const deps = projectDeps as Record<string, { libraryHash: string; currentHash?: string }>
+    if (deps[skillName]) {
+      deps[skillName].libraryHash = hash
+      deps[skillName].currentHash = hash
+    }
+  }
+  fs.writeFileSync(deploymentsPath, JSON.stringify(deployments, null, 2))
+
+  return { success: true, libraryPath: libFilePath, hash }
+})
+
 // IPC: Directory picker
 ipcMain.handle('dialog:openDirectory', async () => {
   const { dialog } = await import('electron')

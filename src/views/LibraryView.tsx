@@ -576,22 +576,37 @@ export default function LibraryView() {
         console.log('Divergence modal - divergenceSkill:', divergenceSkill.filename, 'source:', divergenceSkill.source)
         console.log('Divergence modal - librarySkill found:', !!librarySkill, 'content preview:', librarySkill?.content?.substring(0, 50))
         console.log('Divergence modal - divergentLocations:', divergenceSkill.divergentLocations)
-        console.log('Divergence modal - all skills:', skills.map(s => ({ filename: s.filename, source: s.source, hash: s.hash.substring(0, 8) })))
+
+        // Determine if this is a reverse-divergence (project version modified after deploy)
+        const isProjectAhead = divergenceSkill.source !== 'skilldeck' && librarySkill
 
         return (
           <div data-testid="divergence-modal" className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-surface border border-border rounded-lg p-4 w-[600px] max-h-[80vh] overflow-y-auto">
-              <h3 className="font-medium text-fg mb-2">Divergence Detected</h3>
+              <h3 className="font-medium text-fg mb-2">
+                {isProjectAhead ? 'Reverse Divergence Detected' : 'Divergence Detected'}
+              </h3>
               <p className="text-sm text-muted mb-4">
                 <span className="text-fg font-medium">{divergenceSkill.name}</span>
-                {' '}has different content across locations.
+                {' '}{isProjectAhead
+                  ? 'has been modified in the project. The project version may be newer than the library.'
+                  : 'has different content across locations.'
+                }
               </p>
+
+              {isProjectAhead && (
+                <div data-testid="reverse-divergence-indicator" className="mb-3 p-2 bg-blue-900/30 border border-blue-800/50 rounded text-xs text-blue-300">
+                  The project version of this skill has been modified after deployment.
+                  You can promote it back to the library to make it the new canonical version.
+                </div>
+              )}
 
               {/* Library Version */}
               <div data-testid="diff-view" className="border border-border rounded mb-3 overflow-hidden">
                 <div className="bg-border px-3 py-1.5 text-sm text-fg font-medium flex justify-between">
                   <span>Library Version (Skilldeck)</span>
-                  {librarySkill && <span className="text-muted">Canonical</span>}
+                  {librarySkill && !isProjectAhead && <span className="text-muted">Canonical</span>}
+                  {isProjectAhead && <span className="text-yellow-400">May be outdated</span>}
                 </div>
                 <pre className="p-3 text-xs font-mono text-fg overflow-auto max-h-32 bg-bg">
                   {librarySkill?.content || 'Not found in library'}
@@ -599,10 +614,13 @@ export default function LibraryView() {
               </div>
 
               {/* Divergent Version */}
-              <div className="border border-red-900/50 rounded mb-4 overflow-hidden">
-                <div className="bg-red-900/30 px-3 py-1.5 text-sm text-red-300 font-medium flex justify-between">
+              <div className={`border rounded mb-4 overflow-hidden ${isProjectAhead ? 'border-blue-800/50' : 'border-red-900/50'}`}>
+                <div className={`${isProjectAhead ? 'bg-blue-900/30 text-blue-300' : 'bg-red-900/30 text-red-300'} px-3 py-1.5 text-sm font-medium flex justify-between`}>
                   <span>{getSourceLabel(divergenceSkill.source)} Version</span>
-                  <span className="text-red-400">Diverges</span>
+                  {isProjectAhead
+                    ? <span className="text-blue-400">Project Modified</span>
+                    : <span className="text-red-400">Diverges</span>
+                  }
                 </div>
                 <pre className="p-3 text-xs font-mono text-fg overflow-auto max-h-32 bg-bg">
                   {divergenceSkill.content}
@@ -616,19 +634,29 @@ export default function LibraryView() {
                 >
                   Cancel
                 </button>
+                {isProjectAhead && window.api.promoteToLibrary && (
+                  <button
+                    data-testid="promote-to-library-btn"
+                    onClick={async () => {
+                      const skillName = divergenceSkill.filename.replace('.md', '')
+                      await window.api.promoteToLibrary(skillName, divergenceSkill.sourcePath)
+                      setDivergenceSkill(null)
+                      await loadAllSkills()
+                    }}
+                    className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded font-medium"
+                  >
+                    Promote to Library
+                  </button>
+                )}
                 <button
                   data-testid="use-library-version-btn"
                   onClick={async () => {
                     // Sync library version to divergent locations
                     if (window.api.syncToTools && librarySkill) {
                       const skillName = librarySkill.filename.replace('.md', '')
-                      // If the clicked skill is from an external location, sync TO that location
-                      // If the clicked skill is from the library, sync to the divergent external locations
                       const targetLocations = divergenceSkill.source === 'skilldeck'
                         ? (divergenceSkill.divergentLocations || []).filter(loc => loc !== 'skilldeck')
                         : [divergenceSkill.source]
-                      console.log('Syncing skill:', skillName, 'to locations:', targetLocations)
-                      console.log('Library content preview:', librarySkill.content.substring(0, 100))
                       if (targetLocations.length > 0) {
                         await window.api.syncToTools(skillName, librarySkill.content, targetLocations)
                       }
