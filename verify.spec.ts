@@ -1261,3 +1261,51 @@ tags: []
     try { fs.rmdirSync(path.join(homedir, '.claude', 'skills')) } catch {}
   }
 })
+
+// ─── Bulk Actions Discoverability ─────────────────────────────────────────────
+
+test('Bulk actions — checkboxes visible, select-all, action bar at 1+', async () => {
+  cleanSkilldeck()
+  seedSkill('bulk-a', makeSkillContent('Bulk A', 'First bulk skill', ['test']))
+  seedSkill('bulk-b', makeSkillContent('Bulk B', 'Second bulk skill', ['test']))
+  seedSkill('bulk-c', makeSkillContent('Bulk C', 'Third bulk skill', ['other']))
+
+  const { app, window } = await launchApp()
+
+  await window.waitForSelector('[data-testid="skill-item"], [data-skill]', { timeout: 5000 })
+  // Wait for skill list to fully render
+  await window.waitForTimeout(1000)
+
+  // Checkboxes are visible on each skill row
+  const checkboxes = window.locator('[data-testid="skill-checkbox"]')
+  await expect(checkboxes).toHaveCount(3)
+
+  // Select-all checkbox is visible
+  const selectAll = window.locator('[data-testid="select-all-checkbox"]')
+  await expect(selectAll).toBeVisible()
+
+  // Click select-all — all skills selected
+  await selectAll.click()
+
+  // Action bar appears with count
+  const selectedCount = window.locator('text=3 skills selected')
+  await expect(selectedCount).toBeVisible({ timeout: 2000 })
+
+  // All checkboxes are checked
+  for (let i = 0; i < 3; i++) {
+    await expect(checkboxes.nth(i)).toBeChecked()
+  }
+
+  // Click select-all again — deselect all
+  await selectAll.click()
+
+  // Action bar disappears
+  await expect(window.locator('text=skills selected')).not.toBeVisible({ timeout: 2000 })
+
+  // Click a single checkbox — action bar shows "1 skill selected"
+  await checkboxes.first().click()
+  const singleCount = window.locator('text=1 skill selected')
+  await expect(singleCount).toBeVisible({ timeout: 2000 })
+
+  await app.close()
+})

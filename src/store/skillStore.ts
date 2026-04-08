@@ -69,7 +69,8 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   scannedSkills: [],
 
   // Deployment Helper
-  deploySkill: async (skill: Skill, content: string, projectId: string | null, toolIds: string[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  deploySkill: async (_skill: Skill, _content: string, _projectId: string | null, _toolIds: string[]) => {
     return Promise.resolve(true)
   },
 
@@ -130,7 +131,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   selectSkill: (skill) => set({ selectedSkill: skill }),
 
   toggleSkillSelection: (skill, multi) => {
-    const { skills, selectedSkillIds } = get()
+    const { selectedSkillIds } = get()
     const skillId = `${skill.source}:${skill.filename}`
 
     if (multi) {

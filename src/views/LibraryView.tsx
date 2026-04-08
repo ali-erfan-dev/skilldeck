@@ -6,6 +6,12 @@ import SkillEditor from '../components/SkillEditor'
 import SourceBadge from '../components/SourceBadge'
 import type { Skill } from '../types'
 
+interface ToolTarget {
+  id: string
+  name: string
+  path: string
+}
+
 // Source display names for UI
 const SOURCE_LABELS: Record<string, string> = {
   'skilldeck': 'Skilldeck',
@@ -38,6 +44,7 @@ export default function LibraryView() {
   const scanning = useSkillStore(state => state.scanning)
 
   const {
+    loadSkills,
     loadAllSkills,
     selectSkill,
     setSearchQuery,
@@ -54,18 +61,23 @@ export default function LibraryView() {
     deleteSelectedSkills
   } = useSkillStore()
 
-  const loadSkills = useSkillStore(state => state.loadSkills)
-
   const { deployments, loadDeployments } = useDeploymentStore()
   const { config, initializeConfig } = useConfigStore()
   const [showBatchDeployModal, setShowBatchDeployModal] = useState(false)
   const [batchDeploying, setBatchDeploying] = useState(false)
   const [batchSelectedProjectId, setBatchSelectedProjectId] = useState<string | null>(null)
   const [batchSelectedTools, setBatchSelectedTools] = useState<string[]>([])
-  const [batchToolTargets, setBatchToolTargets] = useState<SkillEditor.ToolTarget[]>([])
+  const [batchToolTargets, setBatchToolTargets] = useState<ToolTarget[]>([])
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [skillStatuses, setSkillStatuses] = useState<Record<string, 'current' | 'stale'>>({})
   const [divergenceSkill, setDivergenceSkill] = useState<Skill | null>(null)
+
+  // Initialize config, load skills and deployments on mount
+  useEffect(() => {
+    initializeConfig()
+    loadSkills()
+    loadDeployments()
+  }, [initializeConfig, loadSkills, loadDeployments])
 
   useEffect(() => {
     if (showBatchDeployModal && window.api.detectTools) {
