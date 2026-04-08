@@ -686,8 +686,8 @@
         "F004",
         "F019"
       ],
-      "passes": false,
-      "notes": "Do not build a new registry. Wrap npx skills CLI (agent-skills.cc) which already has 63K+ skills. Skilldeck becomes the GUI front-end for the ecosystem that already exists."
+      "passes": true,
+      "notes": "Verified with Playwright + invariants + regression gate"
     },
     {
       "id": "F028",
