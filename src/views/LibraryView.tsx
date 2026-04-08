@@ -6,6 +6,10 @@ import { getProfileById } from '../types'
 import SkillEditor from '../components/SkillEditor'
 import SourceBadge from '../components/SourceBadge'
 import type { Skill } from '../types'
+import { useRegistry } from '../hooks/useRegistry'
+import RegistryCard from '../components/RegistryCard'
+import RegistryPreview from '../components/RegistryPreview'
+import ConflictModal from '../components/ConflictModal'
 
 interface ToolTarget {
   id: string
@@ -48,6 +52,24 @@ export default function LibraryView() {
   const [gitMessage, setGitMessage] = useState<string | null>(null)
   const [semanticMode, setSemanticMode] = useState(false)
   const [semanticResults, setSemanticResults] = useState<{ filename: string; name: string; description: string; score: number }[]>([])
+  const [activeTab, setActiveTab] = useState<'library' | 'browse'>('library')
+  const {
+    skills: registrySkills,
+    loading: registryLoading,
+    online: registryOnline,
+    searchQuery: registrySearch,
+    selectedSkill: registrySelectedSkill,
+    selectedCategory,
+    categories,
+    installing: installingSkill,
+    conflict,
+    handleSearchChange,
+    selectCategory,
+    selectSkill: selectRegistrySkill,
+    clearSelection: clearRegistrySelection,
+    install: installRegistrySkill,
+    resolveConflict,
+  } = useRegistry()
 
   // Check if library is a git repo on mount
   useEffect(() => {
@@ -285,44 +307,63 @@ export default function LibraryView() {
 
   return (
     <div data-testid="library-view" data-view="library" className="h-full flex">
-      {/* Skill List */}
+      {/* Tab Bar */}
       <div className="w-72 border-r border-border flex flex-col">
-        {/* Search */}
-        <div className="p-3 border-b border-border">
-          <div className="flex gap-2 items-center">
-            <input
-              data-testid="search-input"
-              type="text"
-              placeholder={semanticMode ? "Describe what you need..." : "Search skills..."}
-              value={searchQuery}
-              onChange={e => {
-                setSearchQuery(e.target.value)
-                if (semanticMode && window.api.searchSemantic && e.target.value.length > 3) {
-                  window.api.searchSemantic(e.target.value).then(results => {
-                    setSemanticResults(results)
-                  }).catch(() => {})
-                } else {
-                  setSemanticResults([])
-                }
-              }}
-              className="flex-1 bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none"
-            />
-            <button
-              data-testid="semantic-toggle"
-              onClick={() => {
-                setSemanticMode(!semanticMode)
-                setSemanticResults([])
-              }}
-              className={`px-2 py-1.5 text-xs rounded ${semanticMode ? 'bg-accent text-bg' : 'bg-border text-fg'}`}
-              title="Toggle semantic search"
-            >
-              AI
-            </button>
-          </div>
+        <div className="flex border-b border-border">
+          <button
+            data-testid="tab-library"
+            onClick={() => setActiveTab('library')}
+            className={`flex-1 px-3 py-2 text-sm font-medium ${activeTab === 'library' ? 'text-accent border-b-2 border-accent' : 'text-muted hover:text-fg'}`}
+          >
+            My Skills
+          </button>
+          <button
+            data-testid="tab-browse"
+            onClick={() => setActiveTab('browse')}
+            className={`flex-1 px-3 py-2 text-sm font-medium ${activeTab === 'browse' ? 'text-accent border-b-2 border-accent' : 'text-muted hover:text-fg'}`}
+          >
+            Browse
+          </button>
         </div>
 
+        {activeTab === 'library' && (
+          <>
+            {/* Search */}
+            <div className="p-3 border-b border-border">
+              <div className="flex gap-2 items-center">
+                <input
+                  data-testid="search-input"
+                  type="text"
+                  placeholder={semanticMode ? "Describe what you need..." : "Search skills..."}
+                  value={searchQuery}
+                  onChange={e => {
+                    setSearchQuery(e.target.value)
+                    if (semanticMode && window.api.searchSemantic && e.target.value.length > 3) {
+                      window.api.searchSemantic(e.target.value).then(results => {
+                        setSemanticResults(results)
+                      }).catch(() => {})
+                    } else {
+                      setSemanticResults([])
+                    }
+                  }}
+                  className="flex-1 bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none"
+                />
+                <button
+                  data-testid="semantic-toggle"
+                  onClick={() => {
+                    setSemanticMode(!semanticMode)
+                    setSemanticResults([])
+                  }}
+                  className={`px-2 py-1.5 text-xs rounded ${semanticMode ? 'bg-accent text-bg' : 'bg-border text-fg'}`}
+                  title="Toggle semantic search"
+                >
+                  AI
+                </button>
+              </div>
+            </div>
+
         {/* Source Filter */}
-        {allSources.length > 0 && (
+        {activeTab === 'library' && allSources.length > 0 && (
           <div className="p-3 border-b border-border">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted">Filter by source</span>
@@ -569,11 +610,99 @@ export default function LibraryView() {
             </>
           )}
         </div>
+          </>
+        )}
+
+        {/* Browse Tab */}
+        {activeTab === 'browse' && (
+          <>
+            {/* Registry Search */}
+            <div className="p-3 border-b border-border">
+              <input
+                data-testid="registry-search"
+                type="text"
+                placeholder="Search community skills..."
+                value={registrySearch}
+                onChange={e => handleSearchChange(e.target.value)}
+                className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none"
+              />
+            </div>
+            {/* Category Chips */}
+            <div className="p-3 border-b border-border">
+              <div className="flex flex-wrap gap-1">
+                <button
+                  data-testid="registry-category-chip"
+                  onClick={() => selectCategory(null)}
+                  className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                    selectedCategory === null ? 'bg-accent text-bg' : 'bg-border text-muted hover:text-fg'
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    data-testid="registry-category-chip"
+                    onClick={() => selectCategory(cat)}
+                    className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                      selectedCategory === cat ? 'bg-accent text-bg' : 'bg-border text-muted hover:text-fg'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Editor */}
+      {/* Editor / Browse Panel */}
       <div className="flex-1 flex flex-col">
-        {selectedSkill ? (
+        {activeTab === 'browse' ? (
+          !registryOnline ? (
+            <div data-testid="registry-offline" className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-2xl mb-2">📡</div>
+                <p className="text-muted text-sm">No connection</p>
+                <p className="text-muted text-xs mt-1">Community registry requires internet</p>
+              </div>
+            </div>
+          ) : registrySelectedSkill ? (
+            <RegistryPreview
+              skill={registrySelectedSkill}
+              isInstalled={skills.some(s => s.name.toLowerCase() === registrySelectedSkill.name.toLowerCase())}
+              isInstalling={installingSkill === (registrySelectedSkill.slug || registrySelectedSkill.id)}
+              onInstall={() => installRegistrySkill(registrySelectedSkill)}
+              onBack={clearRegistrySelection}
+            />
+          ) : registryLoading ? (
+            <div data-testid="registry-loading" className="flex-1 flex items-center justify-center">
+              <p className="text-muted text-sm">Searching...</p>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4">
+              {registrySkills.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted text-sm">
+                    {registrySearch ? `No skills found for "${registrySearch}". Try different keywords.` : 'Search or select a category to browse community skills.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  {registrySkills.map(skill => (
+                    <RegistryCard
+                      key={skill.id || skill.slug || skill.name}
+                      skill={skill}
+                      isInstalled={skills.some(s => s.name.toLowerCase() === skill.name.toLowerCase())}
+                      onClick={() => selectRegistrySkill(skill)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        ) : selectedSkill ? (
           <SkillEditor
             skill={selectedSkill}
             onDelete={() => setConfirmDelete(selectedSkill.filename)}
@@ -828,6 +957,14 @@ export default function LibraryView() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Conflict Modal */}
+      {conflict && (
+        <ConflictModal
+          existingName={conflict.existingName}
+          onResolve={resolveConflict}
+        />
       )}
     </div>
   )
