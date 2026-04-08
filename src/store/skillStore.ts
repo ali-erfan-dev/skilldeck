@@ -4,6 +4,7 @@ import type { Skill } from '../types'
 interface SkillState {
   skills: Skill[]
   selectedSkill: Skill | null
+  selectedSkillIds: string[]
   searchQuery: string
   selectedTags: string[]
   selectedSources: string[]
@@ -13,6 +14,10 @@ interface SkillState {
   loadSkills: () => Promise<void>
   loadAllSkills: () => Promise<void>
   selectSkill: (skill: Skill | null) => void
+  toggleSkillSelection: (skill: Skill, multi: boolean) => void
+  clearSelection: () => void
+  selectAllSkills: () => void
+  getSelectedSkills: () => Skill[]
   setSearchQuery: (query: string) => void
   toggleTag: (tag: string) => void
   clearTags: () => void
@@ -20,7 +25,8 @@ interface SkillState {
   clearSources: () => void
   createSkill: () => Promise<Skill>
   saveSkill: (filename: string, content: string) => Promise<void>
-  deleteSkill: (filename: string) => Promise<void>
+  deleteSkill: (skill: Skill) => Promise<void>
+  deleteSelectedSkills: () => Promise<void>
 }
 
 function parseFrontmatter(content: string): { name: string; description: string; tags: string[]; body: string } {
@@ -54,12 +60,18 @@ function buildFrontmatter(name: string, description: string, tags: string[]): st
 export const useSkillStore = create<SkillState>((set, get) => ({
   skills: [],
   selectedSkill: null,
+  selectedSkillIds: [],
   searchQuery: '',
   selectedTags: [],
   selectedSources: [],
   loading: false,
   scanning: false,
   scannedSkills: [],
+
+  // Deployment Helper
+  deploySkill: async (skill: Skill, content: string, projectId: string | null, toolIds: string[]) => {
+    return Promise.resolve(true)
+  },
 
   loadSkills: async () => {
     set({ loading: true })
@@ -78,11 +90,15 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   },
 
   loadAllSkills: async () => {
-    set({ scanning: true })
+    const currentSkills = get().skills
+    if (currentSkills.length > 0) {
+      set({ scanning: true })
+    } else {
+      set({ scanning: true, loading: true })
+    }
     try {
       if (!window.api) {
         console.error('window.api is not available')
-        set({ scanning: false })
         return
       }
 
@@ -93,7 +109,6 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       const scannedSkills = await window.api.scanAll()
 
       // Merge: library skills (with updated source) + scanned skills
-      // Library skills get 'skilldeck' source, others keep their source
       const allSkills = [
         ...librarySkills.map((s: Skill) => ({ ...s, source: s.source || 'skilldeck' })),
         ...scannedSkills.filter((s: Skill) => s.source !== 'skilldeck')
@@ -102,15 +117,57 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       set({
         skills: allSkills,
         scannedSkills,
-        scanning: false
+        scanning: false,
+        loading: false
       })
     } catch (err) {
       console.error('Failed to scan skills:', err)
-      set({ scanning: false })
+    } finally {
+      set({ scanning: false, loading: false })
     }
   },
 
   selectSkill: (skill) => set({ selectedSkill: skill }),
+
+  toggleSkillSelection: (skill, multi) => {
+    const { skills, selectedSkillIds } = get()
+    const skillId = `${skill.source}:${skill.filename}`
+
+    if (multi) {
+      const newIds = selectedSkillIds.includes(skillId)
+        ? selectedSkillIds.filter(id => id !== skillId)
+        : [...selectedSkillIds, skillId]
+      set({ selectedSkillIds: newIds })
+    } else {
+      set({ selectedSkillIds: [skillId] })
+    }
+  },
+
+  clearSelection: () => set({ selectedSkillIds: [] }),
+
+  selectAllSkills: () => {
+    const { skills, searchQuery, selectedTags, selectedSources } = get()
+    const filtered = skills.filter(skill => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase()
+        if (!skill.name.toLowerCase().includes(q) && !skill.description.toLowerCase().includes(q) && !skill.filename.toLowerCase().includes(q)) return false
+      }
+      if (selectedTags.length > 0) {
+        if (!selectedTags.some(tag => skill.tags.includes(tag))) return false
+      }
+      if (selectedSources.length > 0) {
+        const skillSource = skill.source || 'skilldeck'
+        if (!selectedSources.includes(skillSource)) return false
+      }
+      return true
+    })
+    set({ selectedSkillIds: filtered.map(s => `${s.source}:${s.filename}`) })
+  },
+
+  getSelectedSkills: () => {
+    const { skills, selectedSkillIds } = get()
+    return skills.filter(s => selectedSkillIds.includes(`${s.source}:${s.filename}`))
+  },
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
@@ -161,14 +218,24 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     await loadAllSkills()
   },
 
-  deleteSkill: async (filename) => {
-    await window.api.deleteSkill(filename)
+  deleteSkill: async (skill: Skill) => {
+    const { filename, sourcePath } = skill
+    const pathToDelete = sourcePath || filename
+    await window.api.deleteSkill(pathToDelete)
     const { skills, selectedSkill } = get()
-    const newSkills = skills.filter(s => s.filename !== filename)
+    const newSkills = skills.filter(s => s.filename !== filename && s.sourcePath !== sourcePath)
     set({
       skills: newSkills,
-      selectedSkill: selectedSkill?.filename === filename ? null : selectedSkill
+      selectedSkill: selectedSkill?.filename === filename && selectedSkill?.sourcePath === sourcePath ? null : selectedSkill
     })
+  },
+
+  deleteSelectedSkills: async () => {
+    const selected = get().getSelectedSkills()
+    for (const skill of selected) {
+      await get().deleteSkill(skill)
+    }
+    set({ selectedSkillIds: [] })
   },
 }))
 
