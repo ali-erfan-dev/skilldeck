@@ -82,7 +82,49 @@ Replace `F001` with the actual feature ID. Replace the notes string as appropria
     ```
     Wait for explicit confirmation. Do not add to the feature list without it.
 
-    **d. REGISTER** — write to `feature_list.json` using the Node command (never string replace). Update `system-contract.json` surfaces map if the new feature touches a surface not yet listed.
+    **d. REGISTER** — two files must be updated atomically. Never update one without the other.
+
+    **Register in feature_list.json** (never string replace):
+    ```bash
+    node -e "
+    const fs=require('fs');
+    const f=JSON.parse(fs.readFileSync('feature_list.json','utf8'));
+    f.features.push({
+      id:'F0XX', phase:3, category:'...', name:'...', description:'...',
+      steps:[], touches:[], depends_on:[], passes:false, notes:''
+    });
+    fs.writeFileSync('feature_list.json',JSON.stringify(f,null,2));
+    console.log('Added F0XX');
+    "
+    ```
+
+    **Register new surfaces in system-contract.json** — for each surface listed in `touches` that does not already exist in system-contract.json, add it:
+    ```bash
+    node -e "
+    const fs=require('fs');
+    const c=JSON.parse(fs.readFileSync('system-contract.json','utf8'));
+    // Add to the appropriate phase section (phase_2_surfaces or phase_3_surfaces)
+    // If the surface already exists, add the new feature ID to its affected_features array
+    // If the surface is new, create it with description, files, and affected_features
+    // Example — adding a new surface:
+    c.phase_3_surfaces['new.surface']={
+      description:'What this surface is',
+      files:['path/to/file.ts'],
+      affected_features:['F0XX']
+    };
+    // Example — adding feature to existing surface:
+    c.phase_3_surfaces['store.skills'].affected_features.push('F0XX');
+    fs.writeFileSync('system-contract.json',JSON.stringify(c,null,2));
+    console.log('Updated system-contract.json');
+    "
+    ```
+
+    **Verify both files are valid JSON after update:**
+    ```bash
+    node -e "require('./feature_list.json'); require('./system-contract.json'); console.log('Both valid');"
+    ```
+
+    If either file is invalid JSON after the update, fix it before proceeding.
 
     **e. SEQUENCE** — decide priority:
     - If human said "add and keep working on current task" → queue it, finish current feature first

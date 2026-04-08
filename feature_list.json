@@ -571,6 +571,235 @@
       ],
       "passes": true,
       "notes": "Built by agent in Session 5 without intake protocol — test passes, feature working. Registered retroactively."
+    },
+    {
+      "id": "F024",
+      "phase": 3,
+      "category": "library",
+      "name": "Natural language skill search",
+      "description": "User types a natural language description of what they need (e.g. \"prevent scope creep\", \"help with database queries\"). The app performs semantic search across all skills in the library — including discovered external skills — and ranks results by relevance. Uses local embeddings via Transformers.js (all-MiniLM-L6-v2, ~23MB, ships with the app). No API call, no internet required, works offline. Keyword search (F009) remains active — semantic search is an additional mode triggered when the query looks like a description rather than a keyword.",
+      "steps": [
+        "Open Library view with 5+ skills from different sources and categories",
+        "Type a natural language description: \"something that prevents scope from expanding\"",
+        "Verify results are ranked by semantic relevance — Scope Killer ranks first",
+        "Verify a keyword-unrelated skill with matching semantics ranks higher than a keyword-matching but semantically unrelated skill",
+        "Verify search works across discovered external skills, not just ~/.skilldeck/library/",
+        "Verify no network request is made during search (offline mode works)",
+        "Verify first-launch embedding generation completes without user action required",
+        "Verify embeddings are regenerated when a skill is created or edited",
+        "Clear search — verify full unranked skill list returns"
+      ],
+      "touches": [
+        "store.skills",
+        "discovery.scanner"
+      ],
+      "depends_on": [
+        "F004",
+        "F019"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F025",
+      "phase": 3,
+      "category": "deployment",
+      "name": "Target profiles — deploy skills to any tool format",
+      "description": "Each registered project has a target profile that defines how skills are deployed to it. Built-in profiles cover two deployment types: (1) skill-dir — creates <targetDir>/<skillName>/SKILL.md, used by Claude Code, Codex skills, Kiro, Amp; (2) instructions-file — appends skill as a delimited section to a single file (AGENTS.md, .windsurfrules, CONVENTIONS.md, GEMINI.md), used by Cursor, Windsurf, Copilot, Aider, OpenCode; (3) rules-dir — creates <targetDir>/<skillName>.mdc with YAML frontmatter, used by Cursor rules. Section delimiters use <!-- skilldeck:skill-start:name --> and <!-- skilldeck:skill-end:name --> to enable precise insert/remove without corrupting adjacent content. Existing projects default to claude-code profile. The skillsPath field is replaced by targetProfile — migration runs automatically on first launch after update.",
+      "steps": [
+        "Open project settings — verify target profile dropdown shows all built-in profiles",
+        "Select Cursor profile — verify deploy writes <skillName>.mdc with YAML frontmatter to .cursor/rules/",
+        "Select Windsurf profile — verify deploy appends skill as delimited section to .windsurfrules",
+        "Select Codex CLI profile — verify deploy appends skill as delimited section to AGENTS.md",
+        "Undeploy a skill from an instructions-file project — verify only that skill section is removed, rest of file intact",
+        "Deploy two skills to same instructions-file project — verify both sections exist without corruption",
+        "Verify existing projects with skillsPath field are migrated to claude-code profile automatically",
+        "Verify re-deploy updates the skill content in place without duplicating the section",
+        "Verify deployment state (current/stale) works correctly for instructions-file type deployments"
+      ],
+      "touches": [
+        "store.projects",
+        "ipc.deployment",
+        "preload",
+        "config.json",
+        "deployments.json"
+      ],
+      "depends_on": [
+        "F011",
+        "F014"
+      ],
+      "passes": false,
+      "notes": "Design by Claude Code research session. Section delimiter format: <!-- skilldeck:skill-start:<name> --> and <!-- skilldeck:skill-end:<name> --> ensures precise removal without regex corruption on skills containing ## headers."
+    },
+    {
+      "id": "F026",
+      "phase": 3,
+      "category": "deployment",
+      "name": "Bidirectional sync — pull improved skill from project back to library",
+      "description": "When a deployed skill has been modified inside the project (project version is newer than library version), Skilldeck detects this and shows a reverse-divergence warning. User can promote the project version back to the library, making it the new canonical version. This is the complement to the existing drift detection (F015/F022) which only detects library-ahead. The Evolve pattern: skills improve in the field, Skilldeck pulls the best version back to the source of truth. Promotion creates a new version in the library — it does not silently overwrite. User sees a diff before confirming.",
+      "steps": [
+        "Deploy a skill to a project",
+        "Edit the deployed SKILL.md file directly inside the project directory (simulate field improvement)",
+        "Open Skilldeck — verify skill card shows a reverse-divergence indicator (project version is ahead)",
+        "Verify the indicator is visually distinct from the library-ahead stale indicator",
+        "Click the indicator — verify diff view shows project version vs library version",
+        "Verify diff clearly labels which version is library and which is project",
+        "Click Promote to Library — verify library version is updated to match project version",
+        "Verify reverse-divergence indicator disappears after promotion",
+        "Verify deployment record is updated — hashes match again after promotion",
+        "Cancel instead of promoting — verify library version is unchanged"
+      ],
+      "touches": [
+        "store.skills",
+        "ipc.deployment",
+        "preload",
+        "deployments.json"
+      ],
+      "depends_on": [
+        "F015",
+        "F022"
+      ],
+      "passes": false,
+      "notes": "Identified by Claude Code research as the most important missing feature vs competitors (Oh My Agents Evolve mode). Builds on existing hash comparison in F015/F022 — flip the comparison direction and add promotion path."
+    },
+    {
+      "id": "F027",
+      "phase": 3,
+      "category": "discovery",
+      "name": "Install skills from community registry",
+      "description": "A Browse tab in the Library view allows users to discover and install community skills from the existing npx skills ecosystem and agent-skills.cc registry. Skilldeck wraps the existing infrastructure rather than building a new registry. User can search by keyword or browse by category. One-click install adds the skill to ~/.skilldeck/library/. Does not require an account. Requires internet connection — gracefully handles offline state.",
+      "steps": [
+        "Open Library view — verify Browse tab is visible alongside personal library",
+        "Click Browse tab — verify community skills are loaded from registry",
+        "Search for scope — verify relevant community skills appear",
+        "Verify each result shows name, description, source, and install button",
+        "Click Install on a skill — verify it appears in the personal library",
+        "Verify installed skill has source badge indicating community origin",
+        "Disconnect from internet — verify Browse tab shows graceful offline message",
+        "Verify already-installed skills show an Update or Reinstall option if a newer version exists"
+      ],
+      "touches": [
+        "store.skills",
+        "discovery.scanner"
+      ],
+      "depends_on": [
+        "F004",
+        "F019"
+      ],
+      "passes": false,
+      "notes": "Do not build a new registry. Wrap npx skills CLI (agent-skills.cc) which already has 63K+ skills. Skilldeck becomes the GUI front-end for the ecosystem that already exists."
+    },
+    {
+      "id": "F028",
+      "phase": 3,
+      "category": "deployment",
+      "name": "Symlink deployment mode — zero-drift sync",
+      "description": "Each project can choose a deployment strategy: copy (current default) or symlink. In symlink mode, deployed skills are symbolic links pointing to the library version rather than copies. This eliminates drift entirely — editing the library version immediately updates the deployed version. On Windows, falls back to copy mode when symlinks require elevated privileges. Project settings include a deployment strategy dropdown (copy/symlink). Existing projects default to copy. Undeploy removes the symlink, not the library file.",
+      "steps": [
+        "Open project settings — verify deployment strategy dropdown shows copy and symlink options",
+        "Set strategy to symlink — deploy a skill to the project",
+        "Verify the deployed file is a symlink pointing to the library version",
+        "Edit the skill in the library — verify the deployed version reflects the change immediately without re-deploy",
+        "Verify stale/current detection shows Current automatically (no drift possible)",
+        "Undeploy the skill — verify symlink is removed but library file remains",
+        "On Windows without developer mode — verify app falls back to copy mode with a notification explaining why",
+        "Switch project from symlink to copy — verify existing symlinks are replaced with copies"
+      ],
+      "touches": [
+        "ipc.deployment",
+        "store.projects",
+        "preload",
+        "deployments.json",
+        "config.json"
+      ],
+      "depends_on": [
+        "F014",
+        "F025"
+      ],
+      "passes": false,
+      "notes": "Symlinks make drift detection (F015/F022) unnecessary for these deployments. Users who want version isolation should use copy mode."
+    },
+    {
+      "id": "F029",
+      "phase": 3,
+      "category": "library",
+      "name": "Skill version history and rollback",
+      "description": "Every save to a skill creates a version snapshot stored in ~/.skilldeck/versions/<skill-name>/. Each snapshot stores the full content, timestamp, and hash. The skill editor shows a history panel listing versions. User can view any previous version, see a diff against the current version, and roll back to restore a previous version as the new current. History is capped at 20 versions per skill — oldest are pruned automatically. Version snapshots record which projects had that version deployed at snapshot time.",
+      "steps": [
+        "Edit and save a skill 3 times — verify 3 version snapshots exist in ~/.skilldeck/versions/<skill-name>/",
+        "Open the skill editor — verify history panel shows 3 versions with timestamps",
+        "Click a previous version — verify diff view shows what changed between that version and current",
+        "Click Rollback on a previous version — verify current skill content is replaced with the selected version",
+        "Verify rollback creates a new version snapshot (not a deletion of newer versions)",
+        "Save 21 times — verify only the 20 most recent snapshots are retained, oldest is pruned",
+        "Delete a skill — verify its version history directory is also removed"
+      ],
+      "touches": [
+        "store.skills",
+        "ipc.skills",
+        "preload"
+      ],
+      "depends_on": [
+        "F006"
+      ],
+      "passes": false,
+      "notes": "Caps at 20 versions to avoid unbounded disk growth. Rollback creates a new version rather than deleting history, preserving audit trail. Snapshots record deployment state at time of save."
+    },
+    {
+      "id": "F030",
+      "phase": 3,
+      "category": "library",
+      "name": "Git-based library sync across machines",
+      "description": "User can configure the library directory as a Git repository. Skilldeck detects whether the library is a Git repo (checks for .git). If it is, a Sync button appears in the Library view that pulls remote changes and pushes local changes. Conflicts are surfaced as divergence warnings using the existing hash comparison. Requires git CLI on PATH. No account needed — works with any Git remote (GitHub, GitLab, self-hosted). Gracefully handles offline state and merge conflicts. Addresses the most-requested Claude Code community feature: cross-device skill sync without a cloud backend.",
+      "steps": [
+        "Initialize a Git repo in ~/.skilldeck/library/ with a remote",
+        "Open Skilldeck — verify Sync button appears in Library view header",
+        "Make a change on another machine and push to remote",
+        "Click Sync in Skilldeck — verify remote changes are pulled and new/updated skills appear in library",
+        "Edit a skill locally — click Sync — verify local changes are pushed to remote",
+        "Create a conflict by editing the same skill on two machines — click Sync — verify conflict is detected and shown as divergence warning",
+        "Disconnect from internet — click Sync — verify graceful offline message with retry option",
+        "Remove .git from library directory — verify Sync button disappears from Library view"
+      ],
+      "touches": [
+        "store.skills",
+        "ipc.skills",
+        "preload",
+        "config.json"
+      ],
+      "depends_on": [
+        "F004",
+        "F022"
+      ],
+      "passes": false,
+      "notes": "No cloud backend. Pure Git. Only Phase 3 feature with no Phase 3 dependencies — can be built any time after Phase 2 is complete. Highest value-to-complexity ratio in Phase 3."
+    },
+    {
+      "id": "F031",
+      "phase": 3,
+      "category": "deployment",
+      "name": "Instructions-file conflict detection and preservation",
+      "description": "When deploying to an instructions-file target (AGENTS.md, .windsurfrules, etc.) that already has content outside skilldeck delimiters, Skilldeck preserves that content and warns if it conflicts with incoming skill content. Before writing, Skilldeck reads the target file, checks for existing non-skilldeck content, and shows a preview of what the file will look like after deployment. Manual edits between delimiters are preserved — Skilldeck only modifies content inside its own delimiter blocks. Must be built alongside F025.",
+      "steps": [
+        "Create a project with an existing AGENTS.md containing manual content (no skilldeck delimiters)",
+        "Deploy a skill to that project using instructions-file profile",
+        "Verify Skilldeck shows a preview of the merged file before writing",
+        "Verify the existing manual content is preserved above or below the skilldeck section",
+        "Manually edit content between two skilldeck sections in the target file",
+        "Re-deploy one of the skills — verify the manual edit between sections is preserved",
+        "Deploy a skill whose content conflicts with existing manual content — verify Skilldeck shows a conflict warning",
+        "Undeploy a skill from a file with multiple skill sections — verify only that skill section is removed, manual content and other sections intact"
+      ],
+      "touches": [
+        "ipc.deployment",
+        "preload",
+        "deployments.json"
+      ],
+      "depends_on": [
+        "F025"
+      ],
+      "passes": false,
+      "notes": "Safety companion to F025. Must be built in the same session as F025 — deploying to instructions-file targets without conflict detection risks destroying manual content. The CLAUDE.md rule prevented adding this as a step in F025, so it is captured here instead."
     }
   ]
 }

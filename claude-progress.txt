@@ -4,7 +4,7 @@
 Phase: 2 (Discovery features)
 Started: 2026-04-05
 Last updated: 2026-04-06
-Features passing: 20 / 22 (F019, F020, F021 complete; F022 in progress)
+Features passing: 23 / 27
 
 ## How to Use This File
 - Read this at the start of every session BEFORE touching any code
@@ -66,110 +66,55 @@ Features passing: 20 / 22 (F019, F020, F021 complete; F022 in progress)
 
 ---
 
-### Session 2 — Library and Project features (2026-04-06)
-**What happened:** Verified F007 (frontmatter fields editable) was already implemented. Implemented F010 (tag filtering) - added selectedTags state to skillStore, tag filter UI to LibraryView with OR logic. Verified F012 (remove project) was already implemented, added testids. Implemented F013 (configure skills path) - added updateProject to configStore, edit modal to ProjectsView.
 
-**Features completed this session:** F007, F010, F012, F013
+---
 
-**Features passing now:** 13 / 18
+### Session 7 — Research audit + Phase 3 planning (2026-04-08)
+**What happened:** Claude Code ran a full competitive research audit of Skilldeck vs the market. No code written.
 
-**Current app state:** App runs. Library features complete (list, create, edit frontmatter fields, delete, search, tag filtering). Projects view has add/remove/edit functionality. Deployment features (F014-F018) not started.
+**Key findings from audit:**
+1. All 23 features (F001-F023) are genuinely working — Phase 1 and Phase 2 complete.
+2. Dead code identified — must fix before Phase 3:
+   - syncStore.ts has a path bug and is not wired into any view
+   - skillStore.deploySkill is a stub returning Promise.resolve(true), never called
+   - All IPC is monolithic in electron/main.ts (400+ lines) — repo structure specifies electron/ipc/ directory which does not exist yet
+   - No src/services/ directory exists — business logic mixed into views
+3. Three adoption blockers identified: one-way sync only, no cross-tool format translation, no community registry
+4. Drift detection is genuinely unique but only works library-ahead — needs to also work project-ahead (Evolve pattern)
+
+**Architecture cleanup required BEFORE Phase 3:**
+Do not build F024-F027 on top of the current monolithic architecture. First session of Phase 3 must:
+1. Extract IPC handlers from electron/main.ts into electron/ipc/ (skills.ts, projects.ts, deployment.ts, filesystem.ts)
+2. Create src/services/ directory with scanner.ts, sync.ts, embeddings.ts stubs
+3. Fix syncStore.ts path bug and wire it into the relevant view
+4. Fix skillStore.deploySkill stub — either implement it properly or remove it
+5. Verify all 23 existing tests still pass after refactor (full regression gate)
+6. Commit: "refactor: extract IPC into electron/ipc/, create service layer"
+
+**New features added to feature_list.json:**
+- F024: Natural language semantic search (Transformers.js, local, offline)
+- F025: Target profiles — deploy to Cursor, Windsurf, Copilot, Codex etc.
+- F026: Bidirectional sync — pull improved skill from project back to library (Evolve)
+- F027: Install from community registry (wraps npx skills / agent-skills.cc)
+
+**Phase 3 build order:**
+1. Architecture cleanup (not a feature — prerequisite)
+2. F025 Target Profiles (highest adoption impact — unlocks Cursor/Copilot users)
+3. F026 Bidirectional sync (second highest — makes Skilldeck a real management tool)
+4. F024 Natural language search
+5. F027 Community registry
+
+**Current app state:** All Phase 1 + Phase 2 features passing. Architecture rough but functional. Ready for cleanup session before Phase 3.
 
 **Next session should:**
 1. Run ./init.sh
-2. Implement F014 (deploy skill to project) - requires:
-   - Deploy button in SkillEditor
-   - Project selection modal
-   - Copy skill file to project skills path
-   - Record deployment in deployments.json
-3. Then F015-F018 (deployment state, view deployments, undeploy, settings)
+2. Read this entry carefully — architecture cleanup is the priority, not new features
+3. Execute the cleanup steps above in order
+4. Run full regression gate after refactor
+5. Only then proceed to F025
 
-**Blockers:** None.
+**Blockers:** None — but do not skip the architecture cleanup.
 
-**Suggested additions:** None.
+**Suggested additions:** None — F024-F027 cover the identified gaps.
 
----
-### Session 3 — Deployment features (2026-04-06)
-**What happened:** Implemented F014 (deploy skill to project) and F015 (deployment status current vs stale). Added Deploy button to SkillEditor with project selection modal. Created deploymentStore to track deployment status. Added Current/Stale badges to LibraryView for deployed skills.
-
-**Features completed this session:** F014, F015
-
-**Features passing now:** 15 / 18
-
-**Current app state:** App runs. Library features complete (list, create, edit, delete, search, tag filtering, deployment status). Projects view has add/remove/edit skills path. Deploy functionality works. Deployment status (Current/Stale) shows in Library view.
-
-**Next session should:**
-1. Run ./init.sh
-2. Implement F016 (view all deployed skills per project) - requires:
-   - Expand ProjectsView to show deployed skills
-   - Add status, timestamp, re-deploy action
-3. Implement F017 (undeploy skill from project)
-4. Implement F018 (settings view - library path configurable)
-
-**Blockers:** None.
-
-**Suggested additions:** None.
-
----
-### Session 4 — Phase 1 Complete (2026-04-06)
-**What happened:** Implemented F016 (view deployed skills per project), F017 (undeploy skill), and F018 (settings - library path configurable). All 18 Phase 1 features now pass.
-
-**Features completed this session:** F016, F017, F018
-
-**Features passing now:** 18 / 18 (Phase 1 COMPLETE)
-
-**Current app state:** App fully functional. Library features complete (list, create, edit frontmatter, delete, search, tag filtering, deployment status). Projects view has add/remove/edit skills path, and shows deployed skills with status/timestamp/redeploy/undeploy. Deploy functionality works. Settings view allows configuring library path.
-
-**Blockers:** None. Phase 1 is complete.
-
-**Suggested additions:** None for Phase 1. Ready for Phase 2 (Playground feature, A/B mode, Behavioral diff).
-
----
-### Session 5 — Phase 2 Discovery Features (2026-04-06)
-**What happened:** Implemented F019, F020, F021 - Phase 2 discovery features.
-
-**Features completed this session:**
-- F019: Scan machine for all skill locations - added scanAll IPC handler, SourceBadge component, source badges on skill cards
-- F020: Filter library by source - added selectedSources state, source filter UI in LibraryView
-- F021: Cross-tool sync deployment - added tools:detect and tools:sync IPC handlers, tool sync UI in SkillEditor
-
-**Features passing now:** 21 / 22
-
-**Current app state:** App scans all skill locations on startup (Claude Code, Codex, Agent Protocol, Kiro, Amp, Gemini, project directories). Source badges show skill origin. Source filter allows filtering by source. Deploy modal shows tool sync targets. Skills can be synced to multiple tool locations.
-
-**F022 status:** Test written (failing), types and syncStore created. Implementation needs:
-- Divergence detection in scan:all handler (compare hashes)
-- UI to show divergence warning on skill cards
-- Diff view component
-- Sync resolution functionality
-
-**Commit history this session:**
-- 1d17aaa feat(F019): update feature definition with expanded requirements
-- aae0236 test(F020): add failing test for source filter
-- 2bd7c27 feat(F020): implement source filter in Library view
-- ada2ad9 test(F021): add failing test for cross-tool sync
-- 77848ca feat(F021): implement cross-tool sync deployment
-- 24d8234 test(F022): add failing test for divergence detection
-- 078db68 wip(F022): add types and syncStore for divergence detection
-
-**Blockers:** None. F022 implementation in progress.
-
-**Suggested additions:** None.
-
----
-### Session 6 — F019-F021 complete, F022 in progress (2026-04-06)
-**What happened:** Verified and committed F019, implemented F020 and F021 from scratch, started F022.
-
-**Features completed this session:**
-- F019: Verified passing, updated feature definition with expanded requirements
-- F020: Implemented source filter in LibraryView - added selectedSources state, toggleSource/clearSources actions, source filter UI with OR logic
-- F021: Implemented cross-tool sync - added tools:detect and tools:sync IPC handlers, updated SkillEditor to show tool sync targets in deploy modal, supports multiple tool selection
-
-**Features passing now:** 22 / 22 (ALL PHASE 1 + PHASE 2 FEATURES COMPLETE)
-
-**F022 status:** Complete. Divergence detection implemented via hash comparison in scan:all handler. LibraryView shows divergence-warning badge. Diff view and useLibraryVersion sync action functional.
-
-**Commit:** a65f5f7 feat(F022): complete divergence detection feature
-
-**Suggested additions:** None.
 ---

@@ -99,12 +99,40 @@
     "discovery.scanner": {
       "description": "Machine skill scanner — reads from multiple tool directories",
       "files": ["src/services/scanner.ts"],
-      "affected_features": ["F019", "F020", "F021", "F022"]
+      "affected_features": ["F019", "F020", "F021", "F022", "F024"]
     },
     "discovery.sync": {
       "description": "Cross-tool sync — writes to multiple tool directories",
       "files": ["src/services/sync.ts"],
       "affected_features": ["F021", "F022"]
+    }
+  },
+
+  "phase_3_surfaces": {
+    "embeddings": {
+      "description": "Local embedding engine — Transformers.js all-MiniLM-L6-v2 for semantic search",
+      "files": ["src/services/embeddings.ts"],
+      "affected_features": ["F024"]
+    },
+    "target.profiles": {
+      "description": "Target profile system — deployment format definitions and write logic per tool",
+      "files": ["src/services/targetProfiles.ts", "electron/ipc/deployment.ts"],
+      "affected_features": ["F025", "F031", "F014", "F015", "F016", "F017", "F028"]
+    },
+    "config.json": {
+      "description": "~/.skilldeck/config.json — F025 changes project schema from skillsPath to targetProfile, F028 adds deploymentStrategy",
+      "files": ["electron/ipc/filesystem.ts", "electron/main.ts"],
+      "affected_features": ["F002", "F011", "F012", "F013", "F018", "F025", "F028", "F030"]
+    },
+    "versions": {
+      "description": "~/.skilldeck/versions/ — per-skill version snapshot storage for F029",
+      "files": ["electron/ipc/skills.ts"],
+      "affected_features": ["F029", "F006"]
+    },
+    "git.sync": {
+      "description": "Git CLI integration for library sync across machines",
+      "files": ["electron/ipc/skills.ts", "src/services/gitSync.ts"],
+      "affected_features": ["F030"]
     }
   }
 }
