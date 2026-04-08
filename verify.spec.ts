@@ -1959,3 +1959,83 @@ test('F024 - Natural language skill search', async () => {
     // No cleanup needed
   }
 })
+
+// ─── F027: Community registry browse ──────────────────────────────────────────
+
+test('F027 - Browse tab shows registry UI', async () => {
+  // Seed a skill so the library is not empty
+  fs.mkdirSync(LIBRARY_DIR, { recursive: true })
+  seedSkill('scope-killer', makeSkillContent('Scope Killer', 'Prevents scope creep', ['thinking']))
+
+  const { app, window } = await launchApp()
+  try {
+    // Step 1: Browse tab is visible in Library view
+    const libraryView = window.locator('[data-testid="library-view"]')
+    await expect(libraryView).toBeVisible()
+
+    const browseTab = window.locator('[data-testid="tab-browse"]')
+    await expect(browseTab).toBeVisible()
+
+    // Step 2: Click Browse tab — verify registry UI appears
+    await browseTab.click()
+    await window.waitForTimeout(1000)
+
+    // Step 3: Registry search input is present
+    const registrySearch = window.locator('[data-testid="registry-search"]')
+    await expect(registrySearch).toBeVisible()
+
+    // Step 4: Category chips render
+    const categoryChips = window.locator('[data-testid="registry-category-chip"]')
+    const chipCount = await categoryChips.count()
+    expect(chipCount).toBeGreaterThanOrEqual(1) // At least "All" chip
+
+    // Step 5: Type a search query
+    await registrySearch.fill('scope')
+    await window.waitForTimeout(2000) // Wait for debounced search + API
+
+    // The registry may be offline in test environments, so we check for either:
+    // - registry-skill-card (online, results found)
+    // - registry-offline (offline)
+    // - registry-loading (still loading)
+    // - empty state text
+    const onlineCards = await window.locator('[data-testid="registry-skill-card"]').count()
+    const offlineMessage = await window.locator('[data-testid="registry-offline"]').count()
+
+    if (onlineCards > 0) {
+      // Step 6: Results show name and description
+      const firstCard = window.locator('[data-testid="registry-skill-card"]').first()
+      const cardText = await firstCard.textContent()
+      expect(cardText).toBeTruthy()
+
+      // Step 7: Click card to open preview
+      await firstCard.click()
+      await window.waitForTimeout(500)
+
+      // Verify preview shows install button and back button
+      const installBtn = window.locator('[data-testid="registry-install-btn"]')
+      await expect(installBtn).toBeVisible()
+
+      const backBtn = window.locator('[data-testid="registry-back-btn"]')
+      await expect(backBtn).toBeVisible()
+
+      // Step 8: Go back to grid
+      await backBtn.click()
+      await window.waitForTimeout(500)
+    }
+
+    // If offline, verify the offline message is shown
+    if (offlineMessage > 0) {
+      const offlineEl = window.locator('[data-testid="registry-offline"]')
+      await expect(offlineEl).toBeVisible()
+      const offlineText = await offlineEl.textContent()
+      expect(offlineText).toContain('No connection')
+    }
+
+    await app.close()
+  } catch (e) {
+    await app.close().catch(() => {})
+    throw e
+  } finally {
+    cleanSkilldeck()
+  }
+})
