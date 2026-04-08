@@ -28,14 +28,16 @@ function getSourceLabel(source: string): string {
 }
 
 export default function LibraryView() {
+  const skills = useSkillStore(state => state.skills)
+  const selectedSkill = useSkillStore(state => state.selectedSkill)
+  const selectedSkillIds = useSkillStore(state => state.selectedSkillIds)
+  const searchQuery = useSkillStore(state => state.searchQuery)
+  const selectedTags = useSkillStore(state => state.selectedTags)
+  const selectedSources = useSkillStore(state => state.selectedSources)
+  const loading = useSkillStore(state => state.loading)
+  const scanning = useSkillStore(state => state.scanning)
+
   const {
-    skills,
-    selectedSkill,
-    searchQuery,
-    selectedTags,
-    selectedSources,
-    loading,
-    scanning,
     loadAllSkills,
     selectSkill,
     setSearchQuery,
@@ -45,22 +47,36 @@ export default function LibraryView() {
     clearSources,
     createSkill,
     deleteSkill,
+    toggleSkillSelection,
+    clearSelection,
+    selectAllSkills,
+    getSelectedSkills,
+    deleteSelectedSkills
   } = useSkillStore()
+
   const loadSkills = useSkillStore(state => state.loadSkills)
 
   const { deployments, loadDeployments } = useDeploymentStore()
   const { config, initializeConfig } = useConfigStore()
+  const [showBatchDeployModal, setShowBatchDeployModal] = useState(false)
+  const [batchDeploying, setBatchDeploying] = useState(false)
+  const [batchSelectedProjectId, setBatchSelectedProjectId] = useState<string | null>(null)
+  const [batchSelectedTools, setBatchSelectedTools] = useState<string[]>([])
+  const [batchToolTargets, setBatchToolTargets] = useState<SkillEditor.ToolTarget[]>([])
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [skillStatuses, setSkillStatuses] = useState<Record<string, 'current' | 'stale'>>({})
   const [divergenceSkill, setDivergenceSkill] = useState<Skill | null>(null)
 
   useEffect(() => {
-    initializeConfig()
-    // Always load library skills on startup
-    // External skills are only loaded when user explicitly clicks "Scan"
-    loadSkills()
-    loadDeployments()
-  }, [initializeConfig, loadSkills, loadDeployments])
+    if (showBatchDeployModal && window.api.detectTools) {
+      window.api.detectTools().then(tools => {
+        setBatchToolTargets(tools)
+      }).catch(err => {
+        console.error('Failed to detect tools:', err)
+        setBatchToolTargets([])
+      })
+    }
+  }, [showBatchDeployModal])
 
   // Compute deployment status for each skill
   useEffect(() => {
@@ -112,7 +128,8 @@ export default function LibraryView() {
       const q = searchQuery.toLowerCase()
       const matchesSearch =
         skill.name.toLowerCase().includes(q) ||
-        skill.description.toLowerCase().includes(q)
+        skill.description.toLowerCase().includes(q) ||
+        skill.filename.toLowerCase().includes(q)
       if (!matchesSearch) return false
     }
     // Filter by selected tags (OR logic - match any selected tag)
@@ -122,7 +139,8 @@ export default function LibraryView() {
     }
     // Filter by selected sources (OR logic)
     if (selectedSources.length > 0) {
-      if (!selectedSources.includes(skill.source || 'skilldeck')) {
+      const skillSource = skill.source || 'skilldeck'
+      if (!selectedSources.includes(skillSource)) {
         return false
       }
     }
@@ -133,8 +151,61 @@ export default function LibraryView() {
     await createSkill()
   }
 
-  const handleDeleteSkill = async (filename: string) => {
-    await deleteSkill(filename)
+  const handleBatchDeploy = async () => {
+    if (!batchSelectedProjectId && batchSelectedTools.length === 0) return
+
+    setBatchDeploying(true)
+    try {
+      const selected = getSelectedSkills()
+      for (const skill of selected) {
+        const skillName = skill.filename.replace('.md', '')
+        const content = skill.content
+
+        if (batchSelectedProjectId) {
+          const project = config?.projects.find(p => p.id === batchSelectedProjectId)
+          if (project) {
+            const targetDir = `${project.path}/${project.skillsPath}`
+            await window.api.ensureDir(targetDir)
+
+            let sourcePath: string
+            if (skill.source === 'skilldeck') {
+              const cfg = await window.api.getConfig()
+              sourcePath = `${cfg.libraryPath}/${skill.filename}`
+            } else {
+              sourcePath = skill.sourcePath
+            }
+
+            const targetPath = `${targetDir}/${skill.filename}`
+            await window.api.copyFile(sourcePath, targetPath)
+
+            const hash = await window.api.fileHash(sourcePath)
+            const deployments = await window.api.getDeployments()
+            if (!deployments[project.id]) deployments[project.id] = {}
+            deployments[project.id][skillName] = {
+              deployedAt: new Date().toISOString(),
+              libraryHash: hash,
+              currentHash: hash
+            }
+            await window.api.setDeployments(deployments)
+          }
+        }
+
+        if (batchSelectedTools.length > 0 && window.api.syncToTools) {
+          await window.api.syncToTools(skillName, content, batchSelectedTools)
+        }
+      }
+      setShowBatchDeployModal(false)
+      setBatchSelectedProjectId(null)
+      setBatchSelectedTools([])
+    } catch (err) {
+      console.error('Batch deploy failed:', err)
+    } finally {
+      setBatchDeploying(false)
+    }
+  }
+
+  const handleDeleteSkill = async (skill: Skill) => {
+    await deleteSkill(skill)
     setConfirmDelete(null)
   }
 
@@ -249,70 +320,140 @@ export default function LibraryView() {
           </button>
         </div>
 
-        {/* Skill List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto relative">
+          {/* Select All Header */}
+          {filteredSkills.length > 0 && (
+            <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-3 bg-bg/50">
+              <input
+                type="checkbox"
+                data-testid="select-all-checkbox"
+                checked={selectedSkillIds.length > 0 && selectedSkillIds.length === filteredSkills.length}
+                ref={(el) => { if (el) el.indeterminate = selectedSkillIds.length > 0 && selectedSkillIds.length < filteredSkills.length }}
+                onChange={() => {
+                  if (selectedSkillIds.length === filteredSkills.length) {
+                    clearSelection()
+                  } else {
+                    selectAllSkills()
+                  }
+                }}
+                className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
+              />
+              <span className="text-xs text-muted">
+                {selectedSkillIds.length > 0 ? `${selectedSkillIds.length} of ${filteredSkills.length} selected` : `${filteredSkills.length} skills`}
+              </span>
+            </div>
+          )}
           {filteredSkills.length === 0 ? (
             <div data-testid="empty-state" className="p-4 text-center text-muted text-sm">
               {searchQuery ? 'No skills match your search' : 'No skills yet. Create one to get started.'}
             </div>
           ) : (
-            filteredSkills.map(skill => (
-              <div
-                key={`${skill.source}-${skill.filename}`}
-                data-testid="skill-item"
-                onClick={() => selectSkill(skill)}
-                className={`px-3 py-2 cursor-pointer border-b border-border/50 ${
-                  selectedSkill?.filename === skill.filename
-                    ? 'bg-border'
-                    : 'hover:bg-surface'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="font-medium text-sm text-fg truncate flex-1">{skill.name}</div>
-                  <SourceBadge source={skill.source} />
-                  {skill.divergentLocations && skill.divergentLocations.length > 0 && (
-                    <button
-                      data-testid="divergence-warning"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDivergenceSkill(skill)
-                      }}
-                      className="px-1.5 py-0.5 rounded text-xs bg-red-900/50 text-red-400 hover:bg-red-800/50"
-                      title="Content differs from other locations"
-                    >
-                      Diverges
-                    </button>
-                  )}
-                  {skillStatuses[skill.filename] && (
-                    <span
-                      data-testid={`status-${skillStatuses[skill.filename]}`}
-                      className={`px-1.5 py-0.5 rounded text-xs ${
-                        skillStatuses[skill.filename] === 'current'
-                          ? 'bg-green-900/50 text-green-400'
-                          : 'bg-yellow-900/50 text-yellow-400'
-                      }`}
-                    >
-                      {skillStatuses[skill.filename] === 'current' ? 'Current' : 'Stale'}
-                    </span>
-                  )}
-                </div>
-                {skill.description && (
-                  <div className="text-xs text-muted truncate mt-0.5">{skill.description}</div>
-                )}
-                {skill.tags.length > 0 && (
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {skill.tags.slice(0, 3).map(tag => (
-                      <span
-                        key={tag}
-                        className="px-1.5 py-0.5 bg-border rounded text-xs text-muted"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+            <>
+              {filteredSkills.map(skill => (
+                <div
+                  key={`${skill.source}-${skill.filename}-${skill.sourcePath}`}
+                  data-testid="skill-item"
+                  onClick={() => {
+                    selectSkill(skill)
+                  }}
+                  className={`px-3 py-2 cursor-pointer border-b border-border/50 flex items-center gap-3 ${
+                    selectedSkill?.filename === skill.filename && selectedSkill?.source === skill.source
+                      ? 'bg-border'
+                      : 'hover:bg-surface'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    data-testid="skill-checkbox"
+                    checked={selectedSkillIds.includes(`${skill.source}:${skill.filename}`)}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      toggleSkillSelection(skill, true)
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 rounded border-border accent-accent cursor-pointer shrink-0"
+                  />
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium text-sm text-fg truncate flex-1">{skill.name}</div>
+                      <SourceBadge source={skill.source} />
+                      {skill.divergentLocations && skill.divergentLocations.length > 0 && (
+                        <button
+                          data-testid="divergence-warning"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDivergenceSkill(skill)
+                          }}
+                          className="px-1.5 py-0.5 rounded text-xs bg-red-900/50 text-red-400 hover:bg-red-800/50"
+                          title="Content differs from other locations"
+                        >
+                          Diverges
+                        </button>
+                      )}
+                      {skillStatuses[skill.filename] && (
+                        <span
+                          data-testid={`status-${skillStatuses[skill.filename]}`}
+                          className={`px-1.5 py-0.5 rounded text-xs ${
+                            skillStatuses[skill.filename] === 'current'
+                              ? 'bg-green-900/50 text-green-400'
+                              : 'bg-yellow-900/50 text-yellow-400'
+                          }`}
+                        >
+                          {skillStatuses[skill.filename] === 'current' ? 'Current' : 'Stale'}
+                        </span>
+                      )}
+                    </div>
+                    {skill.description && (
+                      <div className="text-xs text-muted truncate mt-0.5">{skill.description}</div>
+                    )}
+                    {skill.tags.length > 0 && (
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {skill.tags.slice(0, 3).map(tag => (
+                          <span
+                            key={tag}
+                            className="px-1.5 py-0.5 bg-border rounded text-xs text-muted"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))
+                </div>
+              ))}
+
+              {selectedSkillIds.length > 0 && (
+                <div className="absolute bottom-4 left-4 right-4 bg-surface border border-border rounded-lg shadow-xl p-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2">
+                  <div className="text-sm text-fg font-medium">
+                    {selectedSkillIds.length} skill{selectedSkillIds.length !== 1 ? 's' : ''} selected
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={clearSelection}
+                      className="px-3 py-1.5 text-xs text-muted hover:text-fg transition-colors"
+                    >
+                      Deselect All
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm("Delete all selected skills? This cannot be undone.")) {
+                          await deleteSelectedSkills()
+                        }
+                      }}
+                      className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded font-medium transition-colors"
+                    >
+                      Delete Selected
+                    </button>
+                    <button
+                      onClick={() => setShowBatchDeployModal(true)}
+                      className="px-3 py-1.5 text-xs bg-accent hover:bg-accent-dim text-bg rounded font-medium transition-colors"
+                    >
+                      Deploy Selected
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -348,7 +489,11 @@ export default function LibraryView() {
               </button>
               <button
                 data-testid="delete-skill"
-                onClick={() => handleDeleteSkill(confirmDelete)}
+                onClick={() => {
+                  const skill = skills.find(s => s.filename === confirmDelete)
+                  if (skill) handleDeleteSkill(skill)
+                  else setConfirmDelete(null)
+                }}
                 className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
               >
                 Delete
@@ -434,6 +579,85 @@ export default function LibraryView() {
           </div>
         )
       })()}
+
+      {/* Batch Deploy Modal */}
+      {showBatchDeployModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-border rounded-lg p-4 w-96 max-h-[80vh] overflow-y-auto">
+            <h3 className="font-medium text-fg mb-4">Batch Deploy Skills</h3>
+            <div className="mb-4 p-2 bg-bg border border-border rounded text-xs text-muted">
+              Deploying {selectedSkillIds.length} selected skills
+            </div>
+
+            {batchToolTargets.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm text-muted mb-2">Sync to Tools</h4>
+                <div className="space-y-1">
+                  {batchToolTargets.map(tool => (
+                    <button
+                      key={tool.id}
+                      onClick={() => setBatchSelectedTools(prev =>
+                        prev.includes(tool.id) ? prev.filter(id => id !== tool.id) : [...prev, tool.id]
+                      )}
+                      className={`w-full text-left px-3 py-2 rounded border ${
+                        batchSelectedTools.includes(tool.id) ? 'border-accent bg-accent/10' : 'border-border hover:border-muted'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                          batchSelectedTools.includes(tool.id) ? 'border-accent bg-accent' : 'border-muted'
+                        }`}>
+                          {batchSelectedTools.includes(tool.id) && <span className="text-bg text-xs">✓</span>}
+                        </div>
+                        <div>
+                          <div className="font-medium text-fg text-sm">{tool.name}</div>
+                          <div className="text-xs text-muted font-mono truncate">{tool.path}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {config?.projects && config.projects.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm text-muted mb-2">Deploy to Project</h4>
+                <div className="space-y-1">
+                  {config.projects.map(project => (
+                    <button
+                      key={project.id}
+                      onClick={() => setBatchSelectedProjectId(project.id)}
+                      className={`w-full text-left px-3 py-2 rounded border ${
+                        batchSelectedProjectId === project.id ? 'border-accent bg-accent/10' : 'border-border hover:border-muted'
+                      }`}
+                    >
+                      <div className="font-medium text-fg text-sm">{project.name}</div>
+                      <div className="text-xs text-muted font-mono truncate">{project.path}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <button
+                onClick={() => setShowBatchDeployModal(false)}
+                className="px-3 py-1.5 text-sm text-muted hover:text-fg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBatchDeploy}
+                disabled={(!batchSelectedProjectId && batchSelectedTools.length === 0) || batchDeploying}
+                className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim disabled:opacity-50 text-bg rounded font-medium"
+              >
+                {batchDeploying ? 'Deploying...' : 'Deploy All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
