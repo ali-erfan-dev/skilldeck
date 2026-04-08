@@ -69,15 +69,19 @@ export default function LibraryView() {
   const [batchSelectedTools, setBatchSelectedTools] = useState<string[]>([])
   const [batchToolTargets, setBatchToolTargets] = useState<ToolTarget[]>([])
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [skillStatuses, setSkillStatuses] = useState<Record<string, 'current' | 'stale'>>({})
   const [divergenceSkill, setDivergenceSkill] = useState<Skill | null>(null)
 
-  // Initialize config, load skills and deployments on mount
+  // Initialize config and load data on first mount only
+  // Avoid overwriting scanned skills on re-mount (navigation back to library)
   useEffect(() => {
     initializeConfig()
-    loadSkills()
+    if (skills.length === 0) {
+      loadSkills()
+    }
     loadDeployments()
-  }, [initializeConfig, loadSkills, loadDeployments])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (showBatchDeployModal && window.api.detectTools) {
@@ -437,32 +441,28 @@ export default function LibraryView() {
               ))}
 
               {selectedSkillIds.length > 0 && (
-                <div className="absolute bottom-4 left-4 right-4 bg-surface border border-border rounded-lg shadow-xl p-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2">
-                  <div className="text-sm text-fg font-medium">
+                <div className="sticky bottom-0 bg-surface border-t border-border p-3 flex flex-col gap-2">
+                  <div className="text-xs text-muted font-medium">
                     {selectedSkillIds.length} skill{selectedSkillIds.length !== 1 ? 's' : ''} selected
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={clearSelection}
-                      className="px-3 py-1.5 text-xs text-muted hover:text-fg transition-colors"
+                      onClick={() => setConfirmBulkDelete(true)}
+                      className="flex-1 px-2 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded font-medium transition-colors"
                     >
-                      Deselect All
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (confirm("Delete all selected skills? This cannot be undone.")) {
-                          await deleteSelectedSkills()
-                        }
-                      }}
-                      className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded font-medium transition-colors"
-                    >
-                      Delete Selected
+                      Delete
                     </button>
                     <button
                       onClick={() => setShowBatchDeployModal(true)}
-                      className="px-3 py-1.5 text-xs bg-accent hover:bg-accent-dim text-bg rounded font-medium transition-colors"
+                      className="flex-1 px-2 py-1.5 text-xs bg-accent hover:bg-accent-dim text-bg rounded font-medium transition-colors"
                     >
-                      Deploy Selected
+                      Deploy
+                    </button>
+                    <button
+                      onClick={clearSelection}
+                      className="px-2 py-1.5 text-xs text-muted hover:text-fg transition-colors"
+                    >
+                      Clear
                     </button>
                   </div>
                 </div>
@@ -507,6 +507,36 @@ export default function LibraryView() {
                   const skill = skills.find(s => s.filename === confirmDelete)
                   if (skill) handleDeleteSkill(skill)
                   else setConfirmDelete(null)
+                }}
+                className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {confirmBulkDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-border rounded-lg p-4 w-80">
+            <h3 className="font-medium text-fg mb-2">Delete {selectedSkillIds.length} Skill{selectedSkillIds.length !== 1 ? 's' : ''}?</h3>
+            <p className="text-sm text-muted mb-4">
+              This will permanently delete the selected skill files. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmBulkDelete(false)}
+                className="px-3 py-1.5 text-sm text-muted hover:text-fg"
+              >
+                Cancel
+              </button>
+              <button
+                data-testid="confirm-bulk-delete"
+                onClick={async () => {
+                  await deleteSelectedSkills()
+                  setConfirmBulkDelete(false)
                 }}
                 className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
               >
