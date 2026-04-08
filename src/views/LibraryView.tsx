@@ -327,6 +327,7 @@ export default function LibraryView() {
               <input
                 type="checkbox"
                 data-testid="select-all-checkbox"
+                aria-label="Select all skills"
                 checked={selectedSkillIds.length > 0 && selectedSkillIds.length === filteredSkills.length}
                 ref={(el) => { if (el) el.indeterminate = selectedSkillIds.length > 0 && selectedSkillIds.length < filteredSkills.length }}
                 onChange={() => {
@@ -365,6 +366,7 @@ export default function LibraryView() {
                   <input
                     type="checkbox"
                     data-testid="skill-checkbox"
+                    aria-label={`Select ${skill.name}`}
                     checked={selectedSkillIds.includes(`${skill.source}:${skill.filename}`)}
                     onChange={(e) => {
                       e.stopPropagation()
