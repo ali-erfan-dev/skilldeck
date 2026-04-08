@@ -46,6 +46,18 @@ declare global {
       listProfiles: () => Promise<{ id: string; name: string; format: string; targetDir: string; targetFile?: string }[]>
       deployProfile: (projectId: string, skillName: string, skillContent: string, profileId: string) => Promise<{ success: boolean; path: string; format: string }>
       undeployProfile: (projectId: string, skillName: string, profileId: string) => Promise<{ success: boolean }>
+      deployPreview: (projectId: string, skillName: string, skillContent: string, profileId: string) => Promise<{
+        needsPreview: boolean
+        profileId: string
+        format: string
+        targetPath: string
+        fileExists?: boolean
+        existingContent?: string
+        mergedContent?: string
+        hasConflict?: boolean
+        sectionAlreadyExists?: boolean
+        skillName?: string
+      }>
       migrateConfig: () => Promise<Config>
     }
   }

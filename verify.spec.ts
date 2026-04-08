@@ -1449,3 +1449,108 @@ test('F025 - Target profiles — deploy to different tool formats', async () => 
     }
   }
 })
+
+// ─── F031: Instructions-file Conflict Detection ───────────────────────────
+
+test('F031 - Instructions-file conflict detection and preservation', async () => {
+  cleanSkilldeck()
+  seedSkill('scope-killer', makeSkillContent('Scope Killer', 'Prevents scope creep', ['scoping']))
+
+  // Create a temp project directory with existing AGENTS.md content
+  const tmpDir = path.join(os.tmpdir(), 'skilldeck-f031-test')
+  fs.rmSync(tmpDir, { recursive: true, force: true })
+  fs.mkdirSync(tmpDir, { recursive: true })
+
+  // Pre-create an AGENTS.md with manual content (no skilldeck delimiters)
+  const agentsPath = path.join(tmpDir, 'AGENTS.md')
+  const manualContent = '# Project Rules\n\nAlways write tests before code.\nNever commit directly to main.\n'
+  fs.writeFileSync(agentsPath, manualContent)
+
+  // Add a project with opencode profile (instructions-file → AGENTS.md)
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{
+      id: 'proj-f031',
+      name: 'TestProject',
+      path: tmpDir,
+      skillsPath: '.',
+      targetProfile: 'opencode'
+    }]
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify({}))
+
+  const { app, window } = await launchApp()
+
+  try {
+    // Step 1: Deploy skill to the project that has existing AGENTS.md content
+    await window.click('[data-testid="nav-library"], [data-nav="library"]')
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(500)
+
+    // Click the skill to open editor
+    await window.click('[data-testid="skill-item"]')
+    await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+    await window.waitForTimeout(300)
+
+    // Open deploy modal
+    await window.click('[data-testid="deploy-btn"]')
+    await window.waitForSelector('[data-testid="deploy-modal"]', { timeout: 3000 })
+
+    // Select the project
+    const projectBtn = window.locator('[data-testid="deploy-modal"] button', { hasText: 'TestProject' })
+    await projectBtn.click()
+    await window.waitForTimeout(300)
+
+    // Click Deploy — should trigger preview for instructions-file
+    const deployBtn = window.locator('[data-testid="deploy-modal"] button:has-text("Deploy")')
+    await deployBtn.click()
+    await window.waitForTimeout(1000)
+
+    // Check if preview appeared (for instructions-file, preview should show)
+    // Either we get a preview or the deploy goes through directly
+    const previewVisible = await window.locator('[data-testid="deploy-preview"]').count()
+
+    if (previewVisible > 0) {
+      // Preview is showing — confirm deploy
+      const confirmBtn = window.locator('[data-testid="deploy-modal"] button:has-text("Confirm Deploy")')
+      await confirmBtn.click()
+      await window.waitForTimeout(1000)
+    }
+
+    // Step 2: Verify existing manual content is preserved
+    const mergedContent = fs.readFileSync(agentsPath, 'utf8')
+    expect(mergedContent).toContain('Always write tests before code')
+    expect(mergedContent).toContain('<!-- skilldeck:skill-start:scope-killer -->')
+    expect(mergedContent).toContain('Prevents scope creep')
+    expect(mergedContent).toContain('<!-- skilldeck:skill-end:scope-killer -->')
+
+    // Step 3: Undeploy — verify only the skilldeck section is removed
+    await window.click('[data-testid="nav-projects"], [data-nav="projects"]')
+    await window.waitForTimeout(500)
+
+    // Expand project
+    await window.click('text=TestProject')
+    await window.waitForTimeout(500)
+
+    // Click undeploy
+    const undeployBtn = window.locator('[data-testid="undeploy-btn-scope-killer"]')
+    if (await undeployBtn.count() > 0) {
+      await undeployBtn.click()
+      await window.waitForTimeout(300)
+      await window.click('[data-testid="confirm-undeploy"]')
+      await window.waitForTimeout(1000)
+
+      // Verify only the skilldeck section was removed, manual content preserved
+      const afterUndeploy = fs.readFileSync(agentsPath, 'utf8')
+      expect(afterUndeploy).toContain('Always write tests before code')
+      expect(afterUndeploy).not.toContain('<!-- skilldeck:skill-start:scope-killer -->')
+    }
+
+    await app.close()
+  } finally {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  }
+})

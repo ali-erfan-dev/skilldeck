@@ -62,6 +62,18 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedTools, setSelectedTools] = useState<string[]>([])
   const [toolTargets, setToolTargets] = useState<ToolTarget[]>([])
+  const [deployPreview, setDeployPreview] = useState<{
+    needsPreview: boolean
+    targetPath: string
+    fileExists: boolean
+    existingContent: string
+    mergedContent: string
+    hasConflict: boolean
+    sectionAlreadyExists: boolean
+    skillName: string
+    format: string
+  } | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
   const [newTag, setNewTag] = useState('')
 
   // Detect available tools when modal opens
@@ -164,7 +176,8 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
       setShowDeployModal(false)
       setSelectedProjectId(null)
       setSelectedTools([])
-    } catch (err) {
+      setDeployPreview(null)
+      setShowPreview(false) } catch (err) {
       console.error('Deploy failed:', err)
     } finally {
       setDeploying(false)
@@ -378,25 +391,102 @@ export default function SkillEditor({ skill, onDelete }: SkillEditorProps) {
               </p>
             )}
 
+            {/* Preview panel for instructions-file deployments */}
+            {showPreview && deployPreview && (
+              <div data-testid="deploy-preview" className="mb-4 p-3 bg-bg border border-border rounded">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-fg">Deployment Preview</h4>
+                  {deployPreview.hasConflict && (
+                    <span data-testid="conflict-warning" className="px-2 py-0.5 bg-yellow-900/50 text-yellow-400 text-xs rounded">
+                      Conflict Detected
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted mb-2">
+                  Target: <span className="font-mono">{deployPreview.targetPath}</span>
+                  {deployPreview.sectionAlreadyExists && (
+                    <span className="ml-2 text-accent">(updating existing section)</span>
+                  )}
+                </p>
+                {deployPreview.hasConflict && (
+                  <p className="text-xs text-yellow-400 mb-2">
+                    Warning: Skill content may overlap with existing content in the file.
+                    Your manual content will be preserved — only the skilldeck section will be updated.
+                  </p>
+                )}
+                <div className="border border-border rounded overflow-hidden">
+                  <div className="bg-surface px-2 py-1 text-xs text-muted border-b border-border">
+                    Merged Preview
+                  </div>
+                  <pre data-testid="preview-content" className="p-2 text-xs text-fg font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {deployPreview.mergedContent}
+                  </pre>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <button
                 onClick={() => {
                   setShowDeployModal(false)
                   setSelectedProjectId(null)
                   setSelectedTools([])
+                  setDeployPreview(null)
+                  setShowPreview(false)
                 }}
                 className="px-3 py-1.5 text-sm text-muted hover:text-fg"
               >
                 Cancel
               </button>
-              <button
-                data-testid="confirm-sync"
-                onClick={handleDeploy}
-                disabled={(!selectedProjectId && selectedTools.length === 0) || deploying}
-                className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim disabled:opacity-50 text-bg rounded font-medium"
-              >
-                {deploying ? 'Deploying...' : 'Deploy'}
-              </button>
+              {!showPreview ? (
+                <button
+                  data-testid="confirm-sync"
+                  onClick={async () => {
+                    // For instructions-file profiles, show preview first
+                    if (selectedProjectId && window.api.deployPreview) {
+                      const project = config?.projects.find(p => p.id === selectedProjectId)
+                      const profileId = project?.targetProfile || 'claude-code'
+                      const profile = getProfileById(profileId)
+                      if (profile?.format === 'instructions-file') {
+                        const skillName = skill.filename.replace('.md', '')
+                        const content = buildSkillContent(parsed)
+                        const preview = await window.api.deployPreview(selectedProjectId, skillName, content, profileId)
+                        if (preview.needsPreview && preview.fileExists) {
+                          setDeployPreview(preview as any)
+                          setShowPreview(true)
+                          return
+                        }
+                      }
+                    }
+                    // No preview needed — deploy directly
+                    handleDeploy()
+                  }}
+                  disabled={(!selectedProjectId && selectedTools.length === 0) || deploying}
+                  className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim disabled:opacity-50 text-bg rounded font-medium"
+                >
+                  {deploying ? 'Deploying...' : 'Deploy'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowPreview(false)
+                      setDeployPreview(null)
+                    }}
+                    className="px-3 py-1.5 text-sm text-muted hover:text-fg"
+                  >
+                    Back
+                  </button>
+                  <button
+                    data-testid="confirm-sync"
+                    onClick={handleDeploy}
+                    disabled={deploying}
+                    className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim disabled:opacity-50 text-bg rounded font-medium"
+                  >
+                    {deploying ? 'Deploying...' : 'Confirm Deploy'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

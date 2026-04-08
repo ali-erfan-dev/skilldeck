@@ -521,6 +521,111 @@ ipcMain.handle('config:migrate', () => {
   return config
 })
 
+// IPC: Preview deployment — shows what the target file will look like after deploy (no write)
+ipcMain.handle('deploy:preview', (_event, projectId: string, skillName: string, skillContent: string, profileId: string) => {
+  const profiles: Record<string, { format: string; targetDir: string; targetFile?: string }> = {
+    'claude-code': { format: 'skill-dir', targetDir: '.claude/skills' },
+    'codex': { format: 'skill-dir', targetDir: '.codex/skills' },
+    'kiro': { format: 'skill-dir', targetDir: '.kiro/skills' },
+    'amp': { format: 'skill-dir', targetDir: '.amp/skills' },
+    'agent-protocol': { format: 'skill-dir', targetDir: '.agents/skills' },
+    'windsurf': { format: 'instructions-file', targetDir: '.', targetFile: '.windsurfrules' },
+    'copilot': { format: 'instructions-file', targetDir: '.', targetFile: '.github/copilot-instructions.md' },
+    'aider': { format: 'instructions-file', targetDir: '.', targetFile: 'CONVENTIONS.md' },
+    'opencode': { format: 'instructions-file', targetDir: '.', targetFile: 'AGENTS.md' },
+    'cursor-rules': { format: 'rules-dir', targetDir: '.cursor/rules' },
+  }
+
+  const profile = profiles[profileId]
+  if (!profile) {
+    throw new Error(`Unknown profile: ${profileId}`)
+  }
+
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const project = (config.projects || []).find((p: any) => p.id === projectId)
+  if (!project) {
+    throw new Error(`Project not found: ${projectId}`)
+  }
+
+  const projectPath = project.path
+
+  // For skill-dir and rules-dir, no preview needed (they create new files)
+  if (profile.format === 'skill-dir' || profile.format === 'rules-dir') {
+    return {
+      needsPreview: false,
+      profileId,
+      format: profile.format,
+      targetPath: profile.format === 'skill-dir'
+        ? `${projectPath}/${profile.targetDir}/${skillName}/SKILL.md`
+        : `${projectPath}/${profile.targetDir}/${skillName}.mdc`,
+    }
+  }
+
+  // For instructions-file, generate preview
+  const filePath = path.join(projectPath, profile.targetDir!, profile.targetFile!)
+  const startMarker = `<!-- skilldeck:skill-start:${skillName} -->`
+  const endMarker = `<!-- skilldeck:skill-end:${skillName} -->`
+  const body = skillContent.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim()
+  const section = `${startMarker}\n${body}\n${endMarker}`
+
+  let existingContent = ''
+  let fileExists = false
+
+  if (fs.existsSync(filePath)) {
+    existingContent = fs.readFileSync(filePath, 'utf8')
+    fileExists = true
+  }
+
+  // Check if section already exists
+  const sectionAlreadyExists = existingContent.includes(startMarker)
+
+  // Compute merged content
+  let mergedContent: string
+  if (existingContent.trim().length === 0) {
+    mergedContent = `${section}\n`
+  } else if (sectionAlreadyExists) {
+    // Replace existing section
+    const existingStartIdx = existingContent.indexOf(startMarker)
+    const existingEndIdx = existingContent.indexOf(endMarker, existingStartIdx)
+    if (existingEndIdx !== -1) {
+      const afterEnd = existingEndIdx + endMarker.length
+      let cutEnd = afterEnd
+      if (existingContent[cutEnd] === '\n') cutEnd++
+      const before = existingContent.slice(0, existingStartIdx).trimEnd()
+      const after = existingContent.slice(cutEnd).trimStart()
+      mergedContent = before.length > 0 ? `${before}\n\n${section}\n` : `${section}\n`
+      if (after.length > 0) {
+        mergedContent = `${before.length > 0 ? before + '\n\n' : ''}${section}\n${after.startsWith('\n') ? '' : '\n'}${after}`
+      }
+    } else {
+      mergedContent = `${existingContent.trim()}\n\n${section}\n`
+    }
+  } else {
+    mergedContent = `${existingContent.trim()}\n\n${section}\n`
+  }
+
+  // Detect conflicts: check if skill content keywords overlap with existing non-skilldeck content
+  const existingNonSkilldeck = existingContent
+    .replace(/<!-- skilldeck:skill-start:\S+ -->[\s\S]*?<!-- skilldeck:skill-end:\S+ -->/g, '')
+    .trim()
+
+  const hasConflict = existingNonSkilldeck.length > 0 && existingNonSkilldeck.toLowerCase().includes(body.toLowerCase().split('\n')[0].toLowerCase().substring(0, 40))
+
+  return {
+    needsPreview: true,
+    profileId,
+    format: profile.format,
+    targetPath: filePath,
+    fileExists,
+    existingContent,
+    mergedContent,
+    hasConflict,
+    sectionAlreadyExists,
+    skillName,
+  }
+})
+
 // IPC: Directory picker
 ipcMain.handle('dialog:openDirectory', async () => {
   const { dialog } = await import('electron')

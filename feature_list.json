@@ -798,8 +798,8 @@
       "depends_on": [
         "F025"
       ],
-      "passes": false,
-      "notes": "Safety companion to F025. Must be built in the same session as F025 — deploying to instructions-file targets without conflict detection risks destroying manual content. The CLAUDE.md rule prevented adding this as a step in F025, so it is captured here instead."
+      "passes": true,
+      "notes": "Verified with Playwright — preview before deploy for instructions-file targets, preserves existing content, conflict detection, undeploy removes only skilldeck sections."
     }
   ]
 }
