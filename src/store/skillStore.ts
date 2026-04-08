@@ -82,8 +82,14 @@ export const useSkillStore = create<SkillState>((set, get) => ({
         set({ loading: false })
         return
       }
-      const skills = await window.api.listSkills()
-      set({ skills, loading: false })
+      const librarySkills = await window.api.listSkills()
+      // Preserve scanned skills from other sources (claude-code, codex, etc.)
+      const existingScanned = get().skills.filter(s => s.source !== 'skilldeck')
+      const allSkills = [
+        ...librarySkills.map((s: Skill) => ({ ...s, source: s.source || 'skilldeck' })),
+        ...existingScanned
+      ]
+      set({ skills: allSkills, loading: false })
     } catch (err) {
       console.error('Failed to load skills:', err)
       set({ loading: false })

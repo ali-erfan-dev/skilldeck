@@ -73,15 +73,12 @@ export default function LibraryView() {
   const [skillStatuses, setSkillStatuses] = useState<Record<string, 'current' | 'stale'>>({})
   const [divergenceSkill, setDivergenceSkill] = useState<Skill | null>(null)
 
-  // Initialize config and load data on first mount only
-  // Avoid overwriting scanned skills on re-mount (navigation back to library)
+  // Initialize config and load data on mount
   useEffect(() => {
     initializeConfig()
-    if (skills.length === 0) {
-      loadSkills()
-    }
+    loadSkills()
     loadDeployments()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initializeConfig, loadSkills, loadDeployments])
 
   useEffect(() => {
     if (showBatchDeployModal && window.api.detectTools) {
