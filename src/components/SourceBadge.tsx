@@ -9,6 +9,7 @@ const SOURCE_STYLES: Record<string, string> = {
   'kiro': 'bg-teal-900/50 text-teal-400',
   'amp': 'bg-pink-900/50 text-pink-400',
   'gemini': 'bg-cyan-900/50 text-cyan-400',
+  'community': 'bg-amber-900/50 text-amber-400',
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -22,6 +23,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'kiro': 'Kiro',
   'amp': 'Amp',
   'gemini': 'Gemini',
+  'community': 'Community',
 }
 
 interface SourceBadgeProps {
