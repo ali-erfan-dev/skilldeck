@@ -1,5 +1,4 @@
-import type { Config } from './index'
-import type { Skill } from './index'
+import type { Config, Skill, RegistrySkill } from './index'
 
 declare global {
   interface Window {
@@ -75,6 +74,11 @@ declare global {
 
       // Semantic search
       searchSemantic: (query: string) => Promise<{ filename: string; name: string; description: string; score: number }[]>
+
+      // Community registry
+      registrySearch: (query: string) => Promise<RegistrySkill[]>
+      registryInstall: (skillUrl: string) => Promise<{ success: boolean; path?: string; name?: string; error?: string }>
+      registryPing: () => Promise<{ online: boolean }>
     }
   }
 }

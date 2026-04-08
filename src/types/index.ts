@@ -10,6 +10,18 @@ export interface Skill {
   divergentLocations?: string[]  // Tool locations where content differs from library
 }
 
+export interface RegistrySkill {
+  id: string
+  name: string
+  slug: string
+  description: string
+  author: string
+  tags: string[]
+  url: string
+  downloads?: number
+  version?: string
+}
+
 export interface TargetProfile {
   id: string           // 'claude-code' | 'codex' | 'cursor-rules' | 'windsurf' | etc.
   name: string         // Display name
