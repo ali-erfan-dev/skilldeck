@@ -19,6 +19,7 @@ export default function ProjectsView() {
   const [editingProject, setEditingProject] = useState<string | null>(null)
   const [editSkillsPath, setEditSkillsPath] = useState('')
   const [editProfile, setEditProfile] = useState('claude-code')
+  const [editStrategy, setEditStrategy] = useState<'copy' | 'symlink'>('copy')
   const [newProject, setNewProject] = useState({ name: '', path: '' })
   const [newProjectProfile, setNewProjectProfile] = useState('claude-code')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -228,6 +229,8 @@ export default function ProjectsView() {
                       <div className="text-xs text-muted mt-1">
                         Profile: <span className="font-mono">{getProfileById(project.targetProfile || 'claude-code')?.name || project.targetProfile || 'Claude Code'}</span>
                         <span className="mx-2">|</span>
+                        Strategy: <span className="font-mono">{project.deploymentStrategy || 'copy'}</span>
+                        <span className="mx-2">|</span>
                         Path: <span className="font-mono">{project.skillsPath}</span>
                       </div>
                     </div>
@@ -242,6 +245,7 @@ export default function ProjectsView() {
                           setEditingProject(project.id)
                           setEditSkillsPath(project.skillsPath)
                           setEditProfile(project.targetProfile || 'claude-code')
+                          setEditStrategy(project.deploymentStrategy || 'copy')
                         }}
                         className="text-muted hover:text-fg text-sm"
                       >
@@ -469,6 +473,21 @@ export default function ProjectsView() {
                   Auto-set from profile. Override if needed.
                 </p>
               </div>
+              <div>
+                <label className="block text-sm text-muted mb-1">Deployment Strategy</label>
+                <select
+                  data-testid="deployment-strategy-select"
+                  value={editStrategy}
+                  onChange={e => setEditStrategy(e.target.value as 'copy' | 'symlink')}
+                  className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg focus:border-accent focus:outline-none"
+                >
+                  <option value="copy">Copy (default) — Independent copy in each project</option>
+                  <option value="symlink">Symlink — Link to library, changes sync automatically</option>
+                </select>
+                <p className="text-xs text-muted mt-1">
+                  Symlink mode eliminates drift. May require elevated privileges on Windows.
+                </p>
+              </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button
@@ -480,7 +499,7 @@ export default function ProjectsView() {
               <button
                 data-testid="confirm-edit-project"
                 onClick={async () => {
-                  await updateProject(editingProject, { skillsPath: editSkillsPath, targetProfile: editProfile })
+                  await updateProject(editingProject, { skillsPath: editSkillsPath, targetProfile: editProfile, deploymentStrategy: editStrategy })
                   setEditingProject(null)
                 }}
                 className="px-3 py-1.5 text-sm bg-accent hover:bg-accent-dim text-bg rounded font-medium"

@@ -24,6 +24,7 @@ export interface Project {
   path: string
   skillsPath: string          // Kept for backward compatibility / migration
   targetProfile?: string      // Profile ID — new projects default to 'claude-code'
+  deploymentStrategy?: 'copy' | 'symlink'  // Default: copy. Symlink eliminates drift.
 }
 
 export interface Config {

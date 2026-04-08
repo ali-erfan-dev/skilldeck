@@ -7,7 +7,7 @@ interface ConfigState {
   initializeConfig: () => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
   addProject: (project: { id: string; name: string; path: string; skillsPath: string; targetProfile?: string }) => Promise<void>
-  updateProject: (id: string, updates: { name?: string; path?: string; skillsPath?: string; targetProfile?: string }) => Promise<void>
+  updateProject: (id: string, updates: { name?: string; path?: string; skillsPath?: string; targetProfile?: string; deploymentStrategy?: 'copy' | 'symlink' }) => Promise<void>
   removeProject: (id: string) => Promise<void>
   migrateProjects: () => Promise<void>
 }

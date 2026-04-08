@@ -325,7 +325,7 @@ ipcMain.handle('deploy:profile', (_event, projectId: string, skillName: string, 
     throw new Error(`Unknown profile: ${profileId}`)
   }
 
-  // Read config to find project path
+  // Read config to find project path and deployment strategy
   ensureConfigExists()
   const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
   const project = (config.projects || []).find((p: any) => p.id === projectId)
@@ -334,14 +334,36 @@ ipcMain.handle('deploy:profile', (_event, projectId: string, skillName: string, 
   }
 
   const projectPath = project.path
+  const deploymentStrategy = project.deploymentStrategy || 'copy'
+  const useSymlink = deploymentStrategy === 'symlink' && profile.format === 'skill-dir'
 
   if (profile.format === 'skill-dir') {
     // Create <projectPath>/<targetDir>/<skillName>/SKILL.md
     const skillDir = path.join(projectPath, profile.targetDir, skillName)
     const skillPath = path.join(skillDir, 'SKILL.md')
     fs.mkdirSync(skillDir, { recursive: true })
-    fs.writeFileSync(skillPath, skillContent)
-    return { success: true, path: skillPath, format: profile.format }
+
+    if (useSymlink) {
+      // Create symlink from deployed location to library file
+      const libPath = config.libraryPath || getLibraryPath()
+      const sourcePath = path.join(libPath, `${skillName}.md`)
+      // Remove existing file/symlink first
+      if (fs.existsSync(skillPath)) {
+        fs.unlinkSync(skillPath)
+      }
+      try {
+        fs.symlinkSync(sourcePath, skillPath)
+        return { success: true, path: skillPath, format: profile.format, symlink: true }
+      } catch (err: any) {
+        // Symlink failed (likely Windows privilege issue) — fall back to copy
+        console.warn(`Symlink failed, falling back to copy: ${err.message}`)
+        fs.writeFileSync(skillPath, skillContent)
+        return { success: true, path: skillPath, format: profile.format, symlink: false, fallbackReason: 'symlink_privilege' }
+      }
+    } else {
+      fs.writeFileSync(skillPath, skillContent)
+      return { success: true, path: skillPath, format: profile.format, symlink: false }
+    }
   }
 
   if (profile.format === 'instructions-file') {

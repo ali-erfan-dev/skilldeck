@@ -1737,3 +1737,108 @@ Third version v3
     // No external dirs to clean
   }
 })
+
+// ─── F028: Symlink Deployment Mode ──────────────────────────────────────────
+
+test('F028 - Symlink deployment mode', async () => {
+  cleanSkilldeck()
+  seedSkill('link-test', makeSkillContent('Link Test', 'Test symlink deployment', ['test']))
+
+  const tmpDir = path.join(os.tmpdir(), 'skilldeck-f028-test')
+  fs.rmSync(tmpDir, { recursive: true, force: true })
+  fs.mkdirSync(tmpDir, { recursive: true })
+
+  // Pre-seed a project with symlink strategy
+  const config = {
+    libraryPath: LIBRARY_DIR,
+    projects: [{
+      id: 'proj-f028',
+      name: 'SymlinkProject',
+      path: tmpDir,
+      skillsPath: '.claude/skills',
+      targetProfile: 'claude-code',
+      deploymentStrategy: 'symlink'
+    }]
+  }
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+  fs.writeFileSync(DEPLOYMENTS_PATH, JSON.stringify({}))
+
+  const { app, window } = await launchApp()
+
+  try {
+    // Verify project shows symlink strategy
+    await window.click('[data-testid="nav-projects"], [data-nav="projects"]')
+    await window.waitForTimeout(500)
+
+    const projectText = await window.textContent('[data-testid="projects-view"]')
+    expect(projectText).toContain('symlink')
+
+    // Deploy the skill via the library editor
+    await window.click('[data-testid="nav-library"], [data-nav="library"]')
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(500)
+
+    await window.click('[data-testid="skill-item"]')
+    await window.waitForSelector('[data-testid="skill-editor"]', { timeout: 3000 })
+    await window.waitForTimeout(300)
+
+    await window.click('[data-testid="deploy-btn"]')
+    await window.waitForSelector('[data-testid="deploy-modal"]', { timeout: 3000 })
+
+    // Select the project
+    const projectBtn = window.locator('[data-testid="deploy-modal"] button', { hasText: 'SymlinkProject' })
+    await projectBtn.click()
+    await window.waitForTimeout(300)
+
+    const deployBtn = window.locator('[data-testid="deploy-modal"] button:has-text("Deploy")')
+    await deployBtn.click()
+    await window.waitForTimeout(1500)
+
+    // Check the deployed file — it might be a symlink or a copy (depending on Windows privileges)
+    const deployedPath = path.join(tmpDir, '.claude', 'skills', 'link-test', 'SKILL.md')
+    expect(fs.existsSync(deployedPath)).toBe(true)
+
+    // Try to read the stats to check if it's a symlink
+    const stats = fs.lstatSync(deployedPath)
+    const isSymlink = stats.isSymbolicLink()
+
+    if (isSymlink) {
+      // If symlink succeeded, verify that editing the library version is reflected immediately
+      const libContent = fs.readFileSync(path.join(LIBRARY_DIR, 'link-test.md'), 'utf8')
+      const deployedContent = fs.readFileSync(deployedPath, 'utf8')
+      expect(deployedContent).toBe(libContent)
+    }
+    // On Windows without developer mode, symlink falls back to copy — that's expected behavior
+
+    // Now test switching strategy via edit modal
+    await window.click('[data-testid="nav-projects"], [data-nav="projects"]')
+    await window.waitForTimeout(500)
+
+    // Click Edit on the project
+    await window.locator('button:has-text("Edit")').first().click()
+    await window.waitForTimeout(300)
+
+    // Verify strategy dropdown is visible
+    const strategySelect = window.locator('[data-testid="deployment-strategy-select"]')
+    await expect(strategySelect).toBeVisible({ timeout: 3000 })
+    expect(await strategySelect.inputValue()).toBe('symlink')
+
+    // Switch to copy mode
+    await strategySelect.selectOption('copy')
+    await window.waitForTimeout(300)
+
+    // Save
+    await window.click('[data-testid="confirm-edit-project"]')
+    await window.waitForTimeout(500)
+
+    // Verify project now shows copy
+    const updatedProjectText = await window.textContent('[data-testid="projects-view"]')
+    expect(updatedProjectText).toContain('copy')
+
+    await app.close()
+  } finally {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  }
+})

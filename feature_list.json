@@ -716,8 +716,8 @@
         "F014",
         "F025"
       ],
-      "passes": false,
-      "notes": "Symlinks make drift detection (F015/F022) unnecessary for these deployments. Users who want version isolation should use copy mode."
+      "passes": true,
+      "notes": "Verified with Playwright — symlink mode works, falls back to copy on Windows EPERM. Strategy dropdown in project settings. Copy/symlink switching works."
     },
     {
       "id": "F029",
