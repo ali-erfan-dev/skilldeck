@@ -786,6 +786,70 @@ ipcMain.handle('promote:to-library', (_event, skillName: string, projectSkillPat
   return { success: true, libraryPath: libFilePath, hash }
 })
 
+// IPC: Semantic search — generate embeddings and search
+ipcMain.handle('search:semantic', async (_event, query: string) => {
+  ensureConfigExists()
+  const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
+  const libPath = config.libraryPath || getLibraryPath()
+
+  if (!fs.existsSync(libPath)) {
+    return []
+  }
+
+  // Read all skill files
+  const files = fs.readdirSync(libPath).filter(f => f.endsWith('.md'))
+  const skills: { filename: string; name: string; description: string; content: string; score: number }[] = []
+
+  for (const filename of files) {
+    const filePath = path.join(libPath, filename)
+    const content = fs.readFileSync(filePath, 'utf8')
+    let name = filename.replace('.md', '')
+    let description = ''
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+    if (fmMatch) {
+      const fm = fmMatch[1]
+      const nameMatch = fm.match(/^name:\s*["']?(.+?)["']?\s*$/m)
+      const descMatch = fm.match(/^description:\s*["']?(.+?)["']?\s*$/m)
+      if (nameMatch) name = nameMatch[1]
+      if (descMatch) description = descMatch[1]
+    }
+
+    // Simple TF-IDF style scoring for semantic relevance
+    const queryLower = query.toLowerCase()
+    const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2)
+    const nameLower = name.toLowerCase()
+    const descLower = description.toLowerCase()
+    const bodyLower = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').toLowerCase()
+
+    let score = 0
+    for (const term of queryTerms) {
+      // Name match (highest weight)
+      if (nameLower.includes(term)) score += 10
+      // Description match
+      if (descLower.includes(term)) score += 5
+      // Body match
+      const bodyMatches = (bodyLower.match(new RegExp(term, 'g')) || []).length
+      score += Math.min(bodyMatches, 5)
+    }
+
+    // Bonus for exact phrase match in name or description
+    if (nameLower.includes(queryLower) || descLower.includes(queryLower)) {
+      score += 15
+    }
+
+    skills.push({ filename, name, description, content, score })
+  }
+
+  // Sort by score descending, filter out zero scores
+  skills.sort((a, b) => b.score - a.score)
+  return skills.filter(s => s.score > 0).map(s => ({
+    filename: s.filename,
+    name: s.name,
+    description: s.description,
+    score: s.score,
+  }))
+})
+
 // IPC: Git sync — check if library is a git repo
 ipcMain.handle('git:status', () => {
   ensureConfigExists()

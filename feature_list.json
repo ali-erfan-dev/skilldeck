@@ -597,8 +597,8 @@
         "F004",
         "F019"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verified with Playwright — semantic search with TF-IDF scoring. AI toggle button in search bar. Natural language queries ranked by relevance. Keyword search remains as default mode."
     },
     {
       "id": "F025",

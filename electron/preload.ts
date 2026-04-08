@@ -53,4 +53,7 @@ contextBridge.exposeInMainWorld('api', {
   // Git sync
   gitStatus: () => ipcRenderer.invoke('git:status'),
   gitSync: () => ipcRenderer.invoke('git:sync'),
+
+  // Semantic search
+  searchSemantic: (query: string) => ipcRenderer.invoke('search:semantic', query),
 })

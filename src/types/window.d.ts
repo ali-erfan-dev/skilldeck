@@ -72,6 +72,9 @@ declare global {
       // Git sync
       gitStatus: () => Promise<{ isGitRepo: boolean; libraryPath: string }>
       gitSync: () => Promise<{ success: boolean; results: { action: string; success: boolean; message?: string }[] }>
+
+      // Semantic search
+      searchSemantic: (query: string) => Promise<{ filename: string; name: string; description: string; score: number }[]>
     }
   }
 }

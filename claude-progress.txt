@@ -1,10 +1,10 @@
 # Skilldeck — Agent Progress Log
 
 ## Project Status
-Phase: 2 (Discovery features)
+Phase: 3 (Target profiles, sync, and advanced features)
 Started: 2026-04-05
-Last updated: 2026-04-06
-Features passing: 23 / 27
+Last updated: 2026-04-08
+Features passing: 29 / 31
 
 ## How to Use This File
 - Read this at the start of every session BEFORE touching any code
@@ -116,5 +116,41 @@ Do not build F024-F027 on top of the current monolithic architecture. First sess
 **Blockers:** None — but do not skip the architecture cleanup.
 
 **Suggested additions:** None — F024-F027 cover the identified gaps.
+
+---
+
+### Session 8 — Phase 3 features (2026-04-08)
+**What happened:** Implemented 6 of 8 Phase 3 features. All pass Playwright verification + invariants + regression gate.
+
+**Features completed this session:**
+- F025: Target profiles — deploy skills to any tool format (skill-dir, instructions-file, rules-dir)
+- F031: Instructions-file conflict detection and preview
+- F026: Bidirectional sync — promote project skill back to library (Evolve pattern)
+- F029: Version history and rollback (snapshots in ~/.skilldeck/versions/)
+- F028: Symlink deployment mode with Windows fallback
+- F030: Git-based library sync across machines
+
+**Features passing now:** 29 / 31
+
+**Features remaining:**
+- F024: Natural language skill search — requires Transformers.js dependency (~23MB)
+- F027: Install skills from community registry — requires integrating with npx skills ecosystem
+
+**Current app state:** App fully functional with target profiles, bidirectional sync, version history, symlink deployment, and Git sync. All Phase 1-2 features still passing. New IPC handlers: profiles:list, deploy:profile, undeploy:profile, config:migrate, deploy:preview, promote:to-library, versions:list/read/save/rollback, git:status, git:sync.
+
+**Key architecture notes:**
+- Project schema now has targetProfile and deploymentStrategy fields
+- DeploymentRecord has optional profileId
+- Config migration runs automatically on app startup
+- All deployment paths use profile-aware handlers with fallback to legacy copy
+
+**Next session should:**
+1. Run ./init.sh
+2. Implement F024 (semantic search) — requires `npm install @xenova/transformers` and embedding generation
+3. Implement F027 (community registry) — requires HTTP integration with agent-skills.cc
+
+**Blockers:** None.
+
+**Suggested additions:** None.
 
 ---

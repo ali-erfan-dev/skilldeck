@@ -46,6 +46,8 @@ export default function LibraryView() {
   const [isGitRepo, setIsGitRepo] = useState(false)
   const [gitSyncing, setGitSyncing] = useState(false)
   const [gitMessage, setGitMessage] = useState<string | null>(null)
+  const [semanticMode, setSemanticMode] = useState(false)
+  const [semanticResults, setSemanticResults] = useState<{ filename: string; name: string; description: string; score: number }[]>([])
 
   // Check if library is a git repo on mount
   useEffect(() => {
@@ -149,6 +151,12 @@ export default function LibraryView() {
   }, [skills])
 
   const filteredSkills = skills.filter(skill => {
+    // Filter by semantic results
+    if (semanticMode && semanticResults.length > 0) {
+      const result = semanticResults.find(r => r.filename === skill.filename)
+      if (!result) return false
+      return true
+    }
     // Filter by search query
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
@@ -171,6 +179,14 @@ export default function LibraryView() {
       }
     }
     return true
+  }).sort((a, b) => {
+    // Sort by semantic score when in semantic mode
+    if (semanticMode && semanticResults.length > 0) {
+      const scoreA = semanticResults.find(r => r.filename === a.filename)?.score || 0
+      const scoreB = semanticResults.find(r => r.filename === b.filename)?.score || 0
+      return scoreB - scoreA
+    }
+    return 0
   })
 
   const handleNewSkill = async () => {
@@ -273,14 +289,36 @@ export default function LibraryView() {
       <div className="w-72 border-r border-border flex flex-col">
         {/* Search */}
         <div className="p-3 border-b border-border">
-          <input
-            data-testid="search-input"
-            type="text"
-            placeholder="Search skills..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none"
-          />
+          <div className="flex gap-2 items-center">
+            <input
+              data-testid="search-input"
+              type="text"
+              placeholder={semanticMode ? "Describe what you need..." : "Search skills..."}
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value)
+                if (semanticMode && window.api.searchSemantic && e.target.value.length > 3) {
+                  window.api.searchSemantic(e.target.value).then(results => {
+                    setSemanticResults(results)
+                  }).catch(() => {})
+                } else {
+                  setSemanticResults([])
+                }
+              }}
+              className="flex-1 bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none"
+            />
+            <button
+              data-testid="semantic-toggle"
+              onClick={() => {
+                setSemanticMode(!semanticMode)
+                setSemanticResults([])
+              }}
+              className={`px-2 py-1.5 text-xs rounded ${semanticMode ? 'bg-accent text-bg' : 'bg-border text-fg'}`}
+              title="Toggle semantic search"
+            >
+              AI
+            </button>
+          </div>
         </div>
 
         {/* Source Filter */}

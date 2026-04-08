@@ -1906,3 +1906,56 @@ test('F030 - Git sync button hidden for non-git library', async () => {
     // No cleanup needed
   }
 })
+
+// ─── F024: Natural Language Skill Search ────────────────────────────────────
+
+test('F024 - Natural language skill search', async () => {
+  cleanSkilldeck()
+  // Create skills with different topics
+  seedSkill('scope-killer', makeSkillContent('Scope Killer', 'Prevents scope creep in projects', ['scoping', 'management']))
+  seedSkill('test-writer', makeSkillContent('Test Writer', 'Generates unit tests automatically', ['testing', 'automation']))
+  seedSkill('db-helper', makeSkillContent('DB Helper', 'Database query optimization and migration', ['database', 'sql']))
+
+  const { app, window } = await launchApp()
+
+  try {
+    await window.waitForSelector('[data-testid="skill-item"]', { timeout: 5000 })
+    await window.waitForTimeout(1000)
+
+    // Verify semantic toggle button exists
+    const semanticToggle = window.locator('[data-testid="semantic-toggle"]')
+    await expect(semanticToggle).toBeVisible({ timeout: 3000 })
+
+    // Click the semantic toggle to activate
+    await semanticToggle.click()
+    await window.waitForTimeout(300)
+
+    // Type a natural language query
+    const searchInput = window.locator('[data-testid="search-input"]')
+    await searchInput.fill('something that prevents scope from expanding')
+    await window.waitForTimeout(1500)
+
+    // Verify search results are filtered — scope-killer should rank first
+    const skillItems = window.locator('[data-testid="skill-item"]')
+    const count = await skillItems.count()
+    expect(count).toBeGreaterThanOrEqual(1)
+
+    // The first result should be scope-killer (highest relevance)
+    if (count > 0) {
+      const firstItemText = await skillItems.first().textContent()
+      expect(firstItemText?.toLowerCase()).toContain('scope')
+    }
+
+    // Clear search — verify full unranked skill list returns
+    await searchInput.fill('')
+    await window.waitForTimeout(500)
+
+    const allItems = window.locator('[data-testid="skill-item"]')
+    const allCount = await allItems.count()
+    expect(allCount).toBeGreaterThanOrEqual(3)
+
+    await app.close()
+  } finally {
+    // No cleanup needed
+  }
+})
