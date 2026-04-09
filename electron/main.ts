@@ -3,6 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 import crypto from 'crypto'
+import { autoUpdater } from 'electron-updater'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -53,7 +54,6 @@ function createWindow() {
 
   if (isDev && !isTest) {
     mainWindow.loadURL('http://localhost:5173')
-    mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
@@ -139,7 +139,7 @@ function recursiveScanSkillDirs(dir: string, source: string): Skill[] {
         try {
           const content = fs.readFileSync(fullPath, 'utf8')
           const skillDirName = path.basename(dir)
-          console.log(`[Skilldeck] Found skill: ${skillDirName} at ${fullPath}`)
+          // skill found at fullPath
           results.push(parseSkillFromContent(content, `${skillDirName}.md`, source, fullPath))
         } catch (err) {
           console.warn(`Failed to read ${fullPath}:`, err)
@@ -1076,11 +1076,9 @@ ipcMain.handle('scan:all', () => {
   const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
   const homedir = app.getPath('home')
   const results: Skill[] = []
-  console.log(`[Skilldeck] Starting full skill scan... Home: ${homedir}`)
 
   // 1. Skilldeck library
   const libPath = config.libraryPath || getLibraryPath()
-  console.log(`[Skilldeck] Scanning library: ${libPath}`)
   results.push(...scanDirectory(libPath, 'skilldeck'))
 
   // 2. Claude Code skills (~/.claude/skills/*/SKILL.md)
@@ -1189,7 +1187,6 @@ ipcMain.handle('tools:detect', () => {
 
 // IPC: Sync skill to tool directories
 ipcMain.handle('tools:sync', (_event, skillName: string, content: string, toolIds: string[]) => {
-  console.log('tools:sync called - skillName:', skillName, 'toolIds:', toolIds, 'content preview:', content.substring(0, 50))
   const homedir = app.getPath('home')
   const results: { toolId: string; success: boolean; path: string }[] = []
 
@@ -1205,23 +1202,17 @@ ipcMain.handle('tools:sync', (_event, skillName: string, content: string, toolId
   for (const toolId of toolIds) {
     const toolDir = toolPaths[toolId]
     if (!toolDir) {
-      console.log('[tools:sync] Unknown toolId:', toolId)
       continue
     }
 
-    // Create skill directory and write SKILL.md
     const skillDir = path.join(toolDir, skillName)
     const skillPath = path.join(skillDir, 'SKILL.md')
-
-    console.log(`[tools:sync] skillName=${skillName} toolId=${toolId} path=${skillPath}`)
-    console.log(`[tools:sync] content preview: ${content.substring(0, 50)}...`)
 
     try {
       if (!fs.existsSync(skillDir)) {
         fs.mkdirSync(skillDir, { recursive: true })
       }
       fs.writeFileSync(skillPath, content)
-      console.log('[tools:sync] Synced successfully to:', skillPath)
       results.push({ toolId, success: true, path: skillPath })
     } catch (err) {
       console.error(`Failed to sync to ${toolId}:`, err)
@@ -1229,13 +1220,13 @@ ipcMain.handle('tools:sync', (_event, skillName: string, content: string, toolId
     }
   }
 
-  console.log('tools:sync results:', results)
   return results
 })
 
 app.whenReady().then(() => {
   ensureConfigExists()
   createWindow()
+  autoUpdater.checkForUpdatesAndNotify()
 })
 
 app.on('window-all-closed', () => {
