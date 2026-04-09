@@ -86,7 +86,6 @@ export default function LibraryView() {
   }, [])
 
   const {
-    loadSkills,
     loadAllSkills,
     selectSkill,
     setSearchQuery,
@@ -118,9 +117,9 @@ export default function LibraryView() {
   // Initialize config and load data on mount
   useEffect(() => {
     initializeConfig()
-    loadSkills()
+    loadAllSkills()
     loadDeployments()
-  }, [initializeConfig, loadSkills, loadDeployments])
+  }, [initializeConfig, loadAllSkills, loadDeployments])
 
   useEffect(() => {
     if (showBatchDeployModal && window.api.detectTools) {

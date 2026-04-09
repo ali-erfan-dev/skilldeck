@@ -796,7 +796,8 @@ ipcMain.handle('registry:search', async (_event, query: string, options?: { sort
     const tags = options?.tags
 
     return new Promise((resolve) => {
-      const params = new URLSearchParams({ q: query || '', limit: '50', sort, page: String(page) })
+      const params = new URLSearchParams({ limit: '50', sort, page: String(page) })
+      if (query) params.set('q', query)
       if (tags) params.set('tags', tags)
       const url = `https://skillshub.wtf/api/v1/skills/search?${params.toString()}`
 
