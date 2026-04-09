@@ -241,7 +241,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const pathToDelete = sourcePath || filename
     await window.api.deleteSkill(pathToDelete)
     const { skills, selectedSkill } = get()
-    const newSkills = skills.filter(s => s.filename !== filename && s.sourcePath !== sourcePath)
+    const newSkills = skills.filter(s => !(s.filename === filename && s.sourcePath === sourcePath))
     set({
       skills: newSkills,
       selectedSkill: selectedSkill?.filename === filename && selectedSkill?.sourcePath === sourcePath ? null : selectedSkill
