@@ -1,6 +1,6 @@
 {
   "name": "skilldeck",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Desktop app for managing AI agent skill files",
   "author": "Ali Erfan",
   "main": "dist-electron/main.js",
