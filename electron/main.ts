@@ -863,9 +863,19 @@ ipcMain.handle('registry:install', async (_event, skillUrl: string) => {
               fs.writeFileSync(filePath, content)
               resolve({ success: true, path: filePath, name: parsed.name || filename })
             } else {
-              // Raw markdown content
-              const nameMatch = data.match(/^name:\s*["']?(.+?)["']?\s*$/m)
-              const name = nameMatch ? nameMatch[1].replace(/[^a-zA-Z0-9-]/g, '-') : `skill-${Date.now()}`
+              // Raw markdown content — extract name from frontmatter or heading
+              let name = `skill-${Date.now()}`
+              // Try YAML frontmatter name field first
+              const fmNameMatch = data.match(/^name:\s*["']?(.+?)["']?\s*$/m)
+              if (fmNameMatch) {
+                name = fmNameMatch[1].replace(/[^a-zA-Z0-9-]/g, '-')
+              } else {
+                // Try first markdown heading (# Title)
+                const headingMatch = data.match(/^#\s+(.+)$/m)
+                if (headingMatch) {
+                  name = headingMatch[1].replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()
+                }
+              }
               const filename = `${name}.md`
               const filePath = path.join(libPath, filename)
               fs.writeFileSync(filePath, data)

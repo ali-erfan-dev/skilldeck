@@ -2,7 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSkillStore } from '../store/skillStore'
 import type { RegistrySkill } from '../types'
 
-const FALLBACK_CATEGORIES = ['thinking', 'coding', 'writing', 'planning', 'debugging', 'workflow', 'review', 'testing']
+const FALLBACK_CATEGORIES = [
+  { label: 'All', query: '' },
+  { label: 'Popular', query: 'context' },
+  { label: 'Coding', query: 'code' },
+  { label: 'Testing', query: 'test' },
+  { label: 'Debugging', query: 'debug' },
+  { label: 'Planning', query: 'plan' },
+  { label: 'Writing', query: 'write' },
+  { label: 'Workflow', query: 'workflow' },
+]
 
 interface ConflictInfo {
   skill: RegistrySkill
@@ -15,8 +24,8 @@ export function useRegistry() {
   const [online, setOnline] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSkill, setSelectedSkill] = useState<RegistrySkill | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [categories] = useState<string[]>(FALLBACK_CATEGORIES)
+  const [selectedCategory, setSelectedCategory] = useState<{ label: string; query: string } | null>(null)
+  const [categories] = useState(FALLBACK_CATEGORIES)
   const [installing, setInstalling] = useState<string | null>(null)
   const [conflict, setConflict] = useState<ConflictInfo | null>(null)
   const [sortBy, setSortBy] = useState<string>('downloads')
@@ -71,13 +80,12 @@ export function useRegistry() {
     search(query)
   }, [search])
 
-  const selectCategory = useCallback((cat: string | null) => {
+  const selectCategory = useCallback((cat: { label: string; query: string } | null) => {
     setSelectedCategory(cat)
     setSearchQuery('')
     setPage(1)
     if (cat) {
-      // Search by tag only, not by query+tag (AND logic returns too few results)
-      doSearch('', sortBy, 1, false, cat)
+      doSearch(cat.query, sortBy, 1, false)
     } else {
       doSearch('', sortBy, 1, false)
     }
@@ -87,7 +95,7 @@ export function useRegistry() {
     setSortBy(sort)
     setPage(1)
     if (selectedCategory) {
-      doSearch('', sort, 1, false, selectedCategory)
+      doSearch(selectedCategory.query, sort, 1, false)
     } else if (searchQuery) {
       doSearch(searchQuery, sort, 1, false)
     } else {
@@ -98,9 +106,8 @@ export function useRegistry() {
   const loadMore = useCallback(() => {
     const nextPage = page + 1
     setPage(nextPage)
-    const query = selectedCategory || searchQuery || ''
-    const tags = selectedCategory || undefined
-    doSearch(query, sortBy, nextPage, true, tags)
+    const query = selectedCategory?.query || searchQuery || ''
+    doSearch(query, sortBy, nextPage, true)
   }, [doSearch, page, sortBy, selectedCategory, searchQuery])
 
   const selectSkill = useCallback((skill: RegistrySkill) => {

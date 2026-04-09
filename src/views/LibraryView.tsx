@@ -634,25 +634,16 @@ export default function LibraryView() {
             {/* Category Chips */}
             <div className="p-3 border-b border-border">
               <div className="flex flex-wrap gap-1">
-                <button
-                  data-testid="registry-category-chip"
-                  onClick={() => selectCategory(null)}
-                  className={`px-2 py-0.5 rounded text-xs transition-colors ${
-                    selectedCategory === null ? 'bg-accent text-bg' : 'bg-border text-muted hover:text-fg'
-                  }`}
-                >
-                  All
-                </button>
                 {categories.map(cat => (
                   <button
-                    key={cat}
+                    key={cat.label}
                     data-testid="registry-category-chip"
-                    onClick={() => selectCategory(cat)}
+                    onClick={() => selectCategory(cat.query ? cat : null)}
                     className={`px-2 py-0.5 rounded text-xs transition-colors ${
-                      selectedCategory === cat ? 'bg-accent text-bg' : 'bg-border text-muted hover:text-fg'
+                      (cat.query === '' && selectedCategory === null) || selectedCategory?.query === cat.query ? 'bg-accent text-bg' : 'bg-border text-muted hover:text-fg'
                     }`}
                   >
-                    {cat}
+                    {cat.label}
                   </button>
                 ))}
               </div>
