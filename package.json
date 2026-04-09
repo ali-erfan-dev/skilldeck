@@ -8,7 +8,38 @@
     "build": "tsc && vite build && electron-builder",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "start": "electron ."
+    "start": "electron .",
+    "release": "tsc && vite build && electron-builder --publish always",
+    "version:patch": "npm version patch && git push origin --tags",
+    "version:minor": "npm version minor && git push origin --tags",
+    "version:major": "npm version major && git push origin --tags"
+  },
+  "build": {
+    "appId": "dev.skilldeck.app",
+    "productName": "Skilldeck",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "ali-erfan-dev",
+      "repo": "skilldeck",
+      "releaseType": "draft"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "dependencies": {
     "@xenova/transformers": "^2.17.2",
