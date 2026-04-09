@@ -2,6 +2,7 @@
   "name": "skilldeck",
   "version": "0.1.0",
   "description": "Desktop app for managing AI agent skill files",
+  "author": "Ali Erfan",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -28,14 +29,17 @@
     },
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "linux": {
       "target": "AppImage",
-      "category": "Development"
+      "category": "Development",
+      "icon": "build/icon.png"
     }
   },
   "dependencies": {
