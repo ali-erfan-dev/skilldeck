@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 dist-electron/
+release/
 
 # IDE
 .idea/
@@ -26,3 +27,16 @@ test-results/
 .env
 .env.local
 node_modules
+.claude/
+
+# Harness internals (not for public)
+debug-verify.spec.ts
+get-regression-tests.js
+reset-features.js
+init.ps1
+playwright-electron-cli.md
+skills/
+docs/superpowers/
+
+# Temp/debug files
+tmp_*.json
