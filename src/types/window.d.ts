@@ -77,7 +77,7 @@ declare global {
 
       // Community registry
       registrySearch: (query: string, options?: { sort?: string; page?: number; tags?: string }) => Promise<{ skills: RegistrySkill[]; total: number; hasMore: boolean }>
-      registryInstall: (skillUrl: string) => Promise<{ success: boolean; path?: string; name?: string; error?: string }>
+      registryInstall: (skillUrl: string, skillMeta?: { name?: string; description?: string; tags?: string[] }) => Promise<{ success: boolean; path?: string; name?: string; error?: string }>
       registryPing: () => Promise<{ online: boolean }>
     }
   }

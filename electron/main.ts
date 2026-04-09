@@ -837,7 +837,7 @@ ipcMain.handle('registry:search', async (_event, query: string, options?: { sort
 })
 
 // IPC: Community registry — install a skill
-ipcMain.handle('registry:install', async (_event, skillUrl: string) => {
+ipcMain.handle('registry:install', async (_event, skillUrl: string, skillMeta?: { name?: string; description?: string; tags?: string[] }) => {
   ensureConfigExists()
   const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'))
   const libPath = config.libraryPath || getLibraryPath()
@@ -853,36 +853,46 @@ ipcMain.handle('registry:install', async (_event, skillUrl: string) => {
         res.on('data', (chunk: any) => { data += chunk })
         res.on('end', () => {
           try {
-            // Try to parse as JSON (some registries return skill metadata)
-            // If it's raw markdown, save it directly
+            let name = skillMeta?.name || `skill-${Date.now()}`
+            let description = skillMeta?.description || ''
+            let tags = skillMeta?.tags || []
+            let contentToSave = data
+            let filename: string
+
             if (data.trim().startsWith('{')) {
-              const parsed = JSON.parse(data)
-              const content = parsed.content || parsed.body || parsed.markdown || data
-              const filename = parsed.slug ? `${parsed.slug}.md` : `skill-${Date.now()}.md`
-              const filePath = path.join(libPath, filename)
-              fs.writeFileSync(filePath, content)
-              resolve({ success: true, path: filePath, name: parsed.name || filename })
+              // JSON response from registry
+              try {
+                const parsed = JSON.parse(data)
+                contentToSave = parsed.content || parsed.body || parsed.markdown || data
+                name = parsed.name || name
+                description = parsed.description || description
+                tags = parsed.tags || tags
+                filename = parsed.slug ? `${parsed.slug}.md` : `${name.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()}.md`
+              } catch {
+                filename = `${name.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()}.md`
+              }
             } else {
-              // Raw markdown content — extract name from frontmatter or heading
-              let name = `skill-${Date.now()}`
-              // Try YAML frontmatter name field first
-              const fmNameMatch = data.match(/^name:\s*["']?(.+?)["']?\s*$/m)
-              if (fmNameMatch) {
-                name = fmNameMatch[1].replace(/[^a-zA-Z0-9-]/g, '-')
-              } else {
-                // Try first markdown heading (# Title)
+              // Raw markdown — extract name from heading if not provided
+              if (!skillMeta?.name) {
                 const headingMatch = data.match(/^#\s+(.+)$/m)
                 if (headingMatch) {
                   name = headingMatch[1].replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()
                 }
               }
-              const filename = `${name}.md`
-              const filePath = path.join(libPath, filename)
-              fs.writeFileSync(filePath, data)
-              resolve({ success: true, path: filePath, name })
+              filename = `${name.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()}.md`
             }
+
+            // If content doesn't have YAML frontmatter, add it so Skilldeck can read name/description
+            if (!contentToSave.trim().startsWith('---')) {
+              const frontmatter = `---\nname: "${name.replace(/-/g, ' ')}"\ndescription: "${description.replace(/"/g, '\\"')}"\ntags: [${tags.map(t => `"${t}"`).join(', ')}]\n---\n`
+              contentToSave = frontmatter + contentToSave
+            }
+
+            const filePath = path.join(libPath, filename)
+            fs.writeFileSync(filePath, contentToSave)
+            resolve({ success: true, path: filePath, name })
           } catch {
-            // Save raw content as-is
+            // Save raw content as-is with fallback name
             const filename = `skill-${Date.now()}.md`
             const filePath = path.join(libPath, filename)
             fs.writeFileSync(filePath, data)

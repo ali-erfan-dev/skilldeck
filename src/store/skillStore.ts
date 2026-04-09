@@ -47,6 +47,17 @@ function parseFrontmatter(content: string): { name: string; description: string;
     if (nameMatch) name = nameMatch[1]
     if (descMatch) description = descMatch[1]
     if (tagsMatch) tags = tagsMatch[1].split(',').map(t => t.trim().replace(/["']/g, ''))
+  } else {
+    // No frontmatter — extract name from first # heading
+    const headingMatch = content.match(/^#\s+(.+)$/m)
+    if (headingMatch) {
+      name = headingMatch[1].trim()
+    }
+    // Extract description from first paragraph after heading
+    const descMatch = content.match(/^#\s+.+\n\n(.+)$/m)
+    if (descMatch) {
+      description = descMatch[1].trim()
+    }
   }
 
   return { name, description, tags, body }

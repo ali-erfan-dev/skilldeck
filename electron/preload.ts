@@ -59,6 +59,6 @@ contextBridge.exposeInMainWorld('api', {
 
   // Community registry
   registrySearch: (query: string, options?: { sort?: string; page?: number; tags?: string }) => ipcRenderer.invoke('registry:search', query, options),
-  registryInstall: (skillUrl: string) => ipcRenderer.invoke('registry:install', skillUrl),
+  registryInstall: (skillUrl: string, skillMeta?: { name?: string; description?: string; tags?: string[] }) => ipcRenderer.invoke('registry:install', skillUrl, skillMeta),
   registryPing: () => ipcRenderer.invoke('registry:ping'),
 })

@@ -122,7 +122,11 @@ export function useRegistry() {
     const skillId = skill.slug || skill.id
     setInstalling(skillId)
     try {
-      const result = await window.api.registryInstall(skill.url)
+      const result = await window.api.registryInstall(skill.url, {
+        name: skill.name,
+        description: skill.description,
+        tags: skill.tags,
+      })
       if (result.success) {
         await loadSkills()
       }
