@@ -19,6 +19,7 @@ export interface RegistrySkill {
   tags: string[]
   url: string
   downloads?: number
+  stars?: number
   version?: string
 }
 

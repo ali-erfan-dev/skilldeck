@@ -816,6 +816,7 @@ ipcMain.handle('registry:search', async (_event, query: string, options?: { sort
               tags: s.tags || [],
               url: `https://skillshub.wtf/${s.repo?.githubOwner || s.owner?.username}/${s.repo?.githubRepoName || 'repo'}/${s.slug}?format=md`,
               downloads: s.repo?.downloadCount,
+              stars: s.repo?.starCount,
               version: undefined,
             }))
             resolve({ skills, total: parsed.total || 0, hasMore: parsed.hasMore || false })

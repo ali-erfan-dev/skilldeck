@@ -25,11 +25,12 @@ export function useRegistry() {
   const [page, setPage] = useState(1)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadSkills = useSkillStore(state => state.loadSkills)
+  const initialLoadDone = useRef(false)
 
   const doSearch = useCallback(async (query: string, sort: string, pageNum: number, append: boolean, tags?: string) => {
     setLoading(true)
     try {
-      const result = await window.api.registrySearch(query || '', { sort, page: pageNum, tags })
+      const result = await window.api.registrySearch(query, { sort, page: pageNum, tags })
       if (append) {
         setSkills(prev => [...prev, ...result.skills])
       } else {
@@ -44,14 +45,17 @@ export function useRegistry() {
     }
   }, [])
 
+  // Only ping and load initial results ONCE on mount
   useEffect(() => {
+    if (initialLoadDone.current) return
+    initialLoadDone.current = true
     window.api.registryPing().then(status => {
       setOnline(status.online)
       if (status.online) {
-        doSearch('', sortBy, 1, false)
+        doSearch('', 'downloads', 1, false)
       }
     }).catch(() => setOnline(false))
-  }, [doSearch, sortBy])
+  }, [doSearch])
 
   const search = useCallback((query: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -72,7 +76,8 @@ export function useRegistry() {
     setSearchQuery('')
     setPage(1)
     if (cat) {
-      doSearch(cat, sortBy, 1, false, cat)
+      // Search by tag only, not by query+tag (AND logic returns too few results)
+      doSearch('', sortBy, 1, false, cat)
     } else {
       doSearch('', sortBy, 1, false)
     }
@@ -82,7 +87,7 @@ export function useRegistry() {
     setSortBy(sort)
     setPage(1)
     if (selectedCategory) {
-      doSearch(selectedCategory, sort, 1, false, selectedCategory)
+      doSearch('', sort, 1, false, selectedCategory)
     } else if (searchQuery) {
       doSearch(searchQuery, sort, 1, false)
     } else {
@@ -94,7 +99,8 @@ export function useRegistry() {
     const nextPage = page + 1
     setPage(nextPage)
     const query = selectedCategory || searchQuery || ''
-    doSearch(query, sortBy, nextPage, true, selectedCategory || undefined)
+    const tags = selectedCategory || undefined
+    doSearch(query, sortBy, nextPage, true, tags)
   }, [doSearch, page, sortBy, selectedCategory, searchQuery])
 
   const selectSkill = useCallback((skill: RegistrySkill) => {
